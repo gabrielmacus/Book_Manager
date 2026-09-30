@@ -1,3 +1,10 @@
+[Ejercicio 04]
+- Implementación de ServicioGenero, ServicioEditorial, ServicioMoneda y ServicioTipoCotizacion con validación de nombres/códigos únicos.
+- Implementación de ServicioLibro con validación de ISBN único e integridad referencial (editorial y género).
+- Implementación de ServicioPrecio con validación de combinación única libro+moneda.
+- Implementación de ServicioStock con control de cantidad no negativa y validación de existencia del libro.
+- Implementación de ServicioCotizacionDolar con historial y obtención de la última cotización disponible.
+
 [Ejercicio 03]
 - Definición de las interfaces IRepositorio, IRepositorioStock e IRepositorioCotizacionDolar en repositories.py.
 - Implementación de repositorios que persisten a CSV: RepositorioGeneroCsv, RepositorioEditorialCsv, RepositorioMonedaCsv, RepositorioTipoCotizacionCsv, RepositorioLibroCsv, RepositorioPrecioCsv, RepositorioStockCsv y RepositorioCotizacionDolarCsv.
