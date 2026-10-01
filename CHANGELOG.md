@@ -1,3 +1,6 @@
+[Ejercicio 07]
+- Creación del archivo main.py con llamada a la clase ConsoleUI y el método run.
+
 [Ejercicio 06]
 - Creación de la interfaz gráfica.
 - Creación del menú principal con género, editoriales, libros, etc.
