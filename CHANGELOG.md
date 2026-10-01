@@ -1,5 +1,6 @@
 [Ejercicio 07]
-- Creación del archivo main.py con llamada a la clase ConsoleUI y el método run.
+- Creación del archivo main.py con la función main(import_default_data), que ejecuta ConsoleUI.
+- Con import_default_data=True genera los CSV de importación con generar_csvs antes de iniciar; con False usa los datos existentes.
 
 [Ejercicio 06]
 - Creación de la interfaz de consola en ui/console.py (ConsoleUI) con menú principal y submenús por entidad.

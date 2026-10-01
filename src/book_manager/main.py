@@ -1,14 +1,10 @@
-from pathlib import Path
-import sys
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-if str(BASE_DIR) not in sys.path:
-    sys.path.append(str(BASE_DIR))
-
+from book_manager.preload_data.preload_data import generar_csvs
 from book_manager.ui.console import ConsoleUI, Servicios
 
 
-def main():
+def main(import_default_data: bool = False) -> None:
+    if import_default_data:
+        generar_csvs(sobrescribir=True)
     ConsoleUI(Servicios()).run()
 
 
