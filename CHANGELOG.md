@@ -1,3 +1,6 @@
+[Ejercicio 07]
+- Creación del archivo main.py con llamada a la clase ConsoleUI y el método run.
+
 [Ejercicio 06]
 - Creación de la interfaz de consola en ui/console.py (ConsoleUI) con menú principal y submenús por entidad.
 - Crear, listar, buscar, actualizar y eliminar para las 8 clases, a través de los servicios.
