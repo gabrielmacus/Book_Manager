@@ -1,5 +1,7 @@
 [Ejercicio 05]
-
+- Creación de archivos para carga de datos.
+- Se importan las entidades libro, género, etc.
+- Se crea un archivo CSV con las entidades.
 
 [Ejercicio 04]
 - Implementación de ServicioGenero, ServicioEditorial, ServicioMoneda y ServicioTipoCotizacion con validación de nombres/códigos únicos.
