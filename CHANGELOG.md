@@ -4,9 +4,9 @@
 - Permite realizar las funciones de crear registro nuevo, ver el listado, modificar un listado y eliminarlo.
 
 [Ejercicio 05]
-- Creación de archivos para carga de datos.
-- Se importan las entidades libro, género, etc.
-- Se crea un archivo CSV con las entidades.
+- Creación de preload_data.py, que genera los archivos CSV de importación en migrations/csv.
+- Un archivo CSV por entidad (géneros, editoriales, monedas, tipos de cotización, libros, precios, stock y cotizaciones), con al menos 10 registros cada uno.
+- Los CSV tienen el formato que usan los repositorios; generar_csvs no pisa los archivos existentes salvo que se indique.
 
 [Ejercicio 04]
 - Implementación de ServicioGenero, ServicioEditorial, ServicioMoneda y ServicioTipoCotizacion con validación de nombres/códigos únicos.
