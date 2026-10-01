@@ -1,7 +1,7 @@
 [Ejercicio 06]
--Creación de la interfaz gráfica.
--Creación del menú principal con género, editoriales, libros, etc.
--Permite realizar las funciones de crear registro nuevo, ver el listado, modificar un listado y eliminarlo.
+- Creación de la interfaz gráfica.
+- Creación del menú principal con género, editoriales, libros, etc.
+- Permite realizar las funciones de crear registro nuevo, ver el listado, modificar un listado y eliminarlo.
 
 [Ejercicio 05]
 - Creación de archivos para carga de datos.
