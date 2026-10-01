@@ -67,7 +67,17 @@ class ConsoleUI:
         self.servicios = servicios
 
     def _clear_screen(self) -> None:
-        os.system("cls" if os.name == "nt" else "clear")
+        try:
+            from IPython import get_ipython
+            from IPython.display import clear_output
+
+            en_notebook = hasattr(get_ipython(), "kernel")
+        except ImportError:
+            en_notebook = False
+        if en_notebook:
+            clear_output()
+        else:
+            os.system("cls" if os.name == "nt" else "clear")
 
     def _get_input(self, prompt: str, tipo: type = str) -> Any:
         while True:
