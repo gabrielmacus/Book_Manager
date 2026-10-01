@@ -21,8 +21,17 @@ from book_manager.repositories.repositories import (
 class ServicioGenero:
     """Lógica de negocio para la entidad Genero."""
 
-    def __init__(self, repositorio: IRepositorio[Genero]) -> None:
+    def __init__(
+        self,
+        repositorio: IRepositorio[Genero],
+        repo_libro: IRepositorio[Libro],
+    ) -> None:
         self._repo = repositorio
+        self._repo_libro = repo_libro
+
+    def siguiente_id(self) -> int:
+        """Retorna el próximo id disponible (el mayor existente más 1)."""
+        return max((g.id for g in self._repo.leer_todos()), default=0) + 1
 
     def crear(self, id: int, nombre: str) -> Genero:
         """Crea un nuevo género validando que el nombre no esté duplicado.
@@ -37,9 +46,16 @@ class ServicioGenero:
         Raises:
             ValueError: Si ya existe un género con el mismo nombre.
         """
-        if any(g.nombre.lower() == nombre.strip().lower() for g in self._repo.leer_todos()):
-            raise ValueError(f"Ya existe un género con el nombre '{nombre}'.")
-        return self._repo.crear(Genero(id, nombre))
+        genero = Genero(id, nombre)
+        if any(
+            g.nombre.lower() == genero.nombre.lower()
+            for g in self._repo.leer_todos()
+        ):
+            raise ValueError(
+                f"Ya existe un género con el nombre "
+                f"'{genero.nombre}'."
+            )
+        return self._repo.crear(genero)
 
     def obtener_todos(self) -> List[Genero]:
         """Retorna todos los géneros registrados."""
@@ -60,18 +76,22 @@ class ServicioGenero:
             Genero: El género actualizado.
 
         Raises:
-            ValueError: Si no existe el género, o si el nuevo nombre ya está en uso.
+            ValueError: Si no existe el género, o si el nuevo nombre ya está
+                        en uso.
         """
         genero = self._repo.leer_por_id(id)
         if genero is None:
             raise ValueError(f"No existe un género con id {id}.")
+        genero.nombre = nombre
         duplicado = any(
-            g.nombre.lower() == nombre.strip().lower() and g.id != id
+            g.nombre.lower() == genero.nombre.lower() and g.id != id
             for g in self._repo.leer_todos()
         )
         if duplicado:
-            raise ValueError(f"Ya existe un género con el nombre '{nombre}'.")
-        genero.nombre = nombre
+            raise ValueError(
+                f"Ya existe un género con el nombre "
+                f"'{genero.nombre}'."
+            )
         return self._repo.actualizar(genero)
 
     def eliminar(self, id: int) -> bool:
@@ -82,15 +102,32 @@ class ServicioGenero:
 
         Returns:
             bool: True si fue eliminado, False si no existía.
+
+        Raises:
+            ValueError: Si hay libros asociados al género.
         """
+        libros = self._repo_libro.leer_todos()
+        if any(libro.genero_id == id for libro in libros):
+            raise ValueError(
+                "No se puede eliminar: tiene libros asociados."
+            )
         return self._repo.eliminar(id)
 
 
 class ServicioEditorial:
     """Lógica de negocio para la entidad Editorial."""
 
-    def __init__(self, repositorio: IRepositorio[Editorial]) -> None:
+    def __init__(
+        self,
+        repositorio: IRepositorio[Editorial],
+        repo_libro: IRepositorio[Libro],
+    ) -> None:
         self._repo = repositorio
+        self._repo_libro = repo_libro
+
+    def siguiente_id(self) -> int:
+        """Retorna el próximo id disponible (el mayor existente más 1)."""
+        return max((e.id for e in self._repo.leer_todos()), default=0) + 1
 
     def crear(self, id: int, nombre: str) -> Editorial:
         """Crea una nueva editorial validando que el nombre no esté duplicado.
@@ -105,9 +142,16 @@ class ServicioEditorial:
         Raises:
             ValueError: Si ya existe una editorial con el mismo nombre.
         """
-        if any(e.nombre.lower() == nombre.strip().lower() for e in self._repo.leer_todos()):
-            raise ValueError(f"Ya existe una editorial con el nombre '{nombre}'.")
-        return self._repo.crear(Editorial(id, nombre))
+        editorial = Editorial(id, nombre)
+        if any(
+            e.nombre.lower() == editorial.nombre.lower()
+            for e in self._repo.leer_todos()
+        ):
+            raise ValueError(
+                f"Ya existe una editorial con el nombre "
+                f"'{editorial.nombre}'."
+            )
+        return self._repo.crear(editorial)
 
     def obtener_todos(self) -> List[Editorial]:
         """Retorna todas las editoriales registradas."""
@@ -128,18 +172,22 @@ class ServicioEditorial:
             Editorial: La editorial actualizada.
 
         Raises:
-            ValueError: Si no existe la editorial, o si el nuevo nombre ya está en uso.
+            ValueError: Si no existe la editorial, o si el nuevo nombre ya
+                        está en uso.
         """
         editorial = self._repo.leer_por_id(id)
         if editorial is None:
             raise ValueError(f"No existe una editorial con id {id}.")
+        editorial.nombre = nombre
         duplicado = any(
-            e.nombre.lower() == nombre.strip().lower() and e.id != id
+            e.nombre.lower() == editorial.nombre.lower() and e.id != id
             for e in self._repo.leer_todos()
         )
         if duplicado:
-            raise ValueError(f"Ya existe una editorial con el nombre '{nombre}'.")
-        editorial.nombre = nombre
+            raise ValueError(
+                f"Ya existe una editorial con el nombre "
+                f"'{editorial.nombre}'."
+            )
         return self._repo.actualizar(editorial)
 
     def eliminar(self, id: int) -> bool:
@@ -150,15 +198,32 @@ class ServicioEditorial:
 
         Returns:
             bool: True si fue eliminada, False si no existía.
+
+        Raises:
+            ValueError: Si hay libros asociados a la editorial.
         """
+        libros = self._repo_libro.leer_todos()
+        if any(libro.editorial_id == id for libro in libros):
+            raise ValueError(
+                "No se puede eliminar: tiene libros asociados."
+            )
         return self._repo.eliminar(id)
 
 
 class ServicioMoneda:
     """Lógica de negocio para la entidad Moneda."""
 
-    def __init__(self, repositorio: IRepositorio[Moneda]) -> None:
+    def __init__(
+        self,
+        repositorio: IRepositorio[Moneda],
+        repo_precio: IRepositorio[Precio],
+    ) -> None:
         self._repo = repositorio
+        self._repo_precio = repo_precio
+
+    def siguiente_id(self) -> int:
+        """Retorna el próximo id disponible (el mayor existente más 1)."""
+        return max((m.id for m in self._repo.leer_todos()), default=0) + 1
 
     def crear(self, id: int, codigo: str, nombre: str) -> Moneda:
         """Crea una nueva moneda validando que el código no esté duplicado.
@@ -174,10 +239,12 @@ class ServicioMoneda:
         Raises:
             ValueError: Si ya existe una moneda con el mismo código.
         """
-        codigo_normalizado = codigo.strip().upper()
-        if any(m.codigo == codigo_normalizado for m in self._repo.leer_todos()):
-            raise ValueError(f"Ya existe una moneda con el código '{codigo_normalizado}'.")
-        return self._repo.crear(Moneda(id, codigo, nombre))
+        moneda = Moneda(id, codigo, nombre)
+        if any(m.codigo == moneda.codigo for m in self._repo.leer_todos()):
+            raise ValueError(
+                f"Ya existe una moneda con el código '{moneda.codigo}'."
+            )
+        return self._repo.crear(moneda)
 
     def obtener_todos(self) -> List[Moneda]:
         """Retorna todas las monedas registradas."""
@@ -204,15 +271,16 @@ class ServicioMoneda:
         moneda = self._repo.leer_por_id(id)
         if moneda is None:
             raise ValueError(f"No existe una moneda con id {id}.")
-        codigo_normalizado = codigo.strip().upper()
+        moneda.codigo = codigo
+        moneda.nombre = nombre
         duplicado = any(
-            m.codigo == codigo_normalizado and m.id != id
+            m.codigo == moneda.codigo and m.id != id
             for m in self._repo.leer_todos()
         )
         if duplicado:
-            raise ValueError(f"Ya existe una moneda con el código '{codigo_normalizado}'.")
-        moneda.codigo = codigo
-        moneda.nombre = nombre
+            raise ValueError(
+                f"Ya existe una moneda con el código '{moneda.codigo}'."
+            )
         return self._repo.actualizar(moneda)
 
     def eliminar(self, id: int) -> bool:
@@ -223,18 +291,35 @@ class ServicioMoneda:
 
         Returns:
             bool: True si fue eliminada, False si no existía.
+
+        Raises:
+            ValueError: Si hay precios asociados a la moneda.
         """
+        precios = self._repo_precio.leer_todos()
+        if any(precio.moneda_id == id for precio in precios):
+            raise ValueError(
+                "No se puede eliminar: tiene precios asociados."
+            )
         return self._repo.eliminar(id)
 
 
 class ServicioTipoCotizacion:
     """Lógica de negocio para la entidad TipoCotizacion."""
 
-    def __init__(self, repositorio: IRepositorio[TipoCotizacion]) -> None:
+    def __init__(
+        self,
+        repositorio: IRepositorio[TipoCotizacion],
+        repo_cotizacion: IRepositorioCotizacionDolar,
+    ) -> None:
         self._repo = repositorio
+        self._repo_cotizacion = repo_cotizacion
+
+    def siguiente_id(self) -> int:
+        """Retorna el próximo id disponible (el mayor existente más 1)."""
+        return max((t.id for t in self._repo.leer_todos()), default=0) + 1
 
     def crear(self, id: int, nombre: str) -> TipoCotizacion:
-        """Crea un nuevo tipo de cotización validando que el nombre no esté duplicado.
+        """Crea un tipo de cotización validando que el nombre sea único.
 
         Args:
             id (int): Identificador único del tipo de cotización.
@@ -246,9 +331,16 @@ class ServicioTipoCotizacion:
         Raises:
             ValueError: Si ya existe un tipo de cotización con el mismo nombre.
         """
-        if any(t.nombre.lower() == nombre.strip().lower() for t in self._repo.leer_todos()):
-            raise ValueError(f"Ya existe un tipo de cotización con el nombre '{nombre}'.")
-        return self._repo.crear(TipoCotizacion(id, nombre))
+        tipo = TipoCotizacion(id, nombre)
+        if any(
+            t.nombre.lower() == tipo.nombre.lower()
+            for t in self._repo.leer_todos()
+        ):
+            raise ValueError(
+                f"Ya existe un tipo de cotización con el nombre "
+                f"'{tipo.nombre}'."
+            )
+        return self._repo.crear(tipo)
 
     def obtener_todos(self) -> List[TipoCotizacion]:
         """Retorna todos los tipos de cotización registrados."""
@@ -274,13 +366,16 @@ class ServicioTipoCotizacion:
         tipo = self._repo.leer_por_id(id)
         if tipo is None:
             raise ValueError(f"No existe un tipo de cotización con id {id}.")
+        tipo.nombre = nombre
         duplicado = any(
-            t.nombre.lower() == nombre.strip().lower() and t.id != id
+            t.nombre.lower() == tipo.nombre.lower() and t.id != id
             for t in self._repo.leer_todos()
         )
         if duplicado:
-            raise ValueError(f"Ya existe un tipo de cotización con el nombre '{nombre}'.")
-        tipo.nombre = nombre
+            raise ValueError(
+                f"Ya existe un tipo de cotización con el nombre "
+                f"'{tipo.nombre}'."
+            )
         return self._repo.actualizar(tipo)
 
     def eliminar(self, id: int) -> bool:
@@ -291,7 +386,14 @@ class ServicioTipoCotizacion:
 
         Returns:
             bool: True si fue eliminado, False si no existía.
+
+        Raises:
+            ValueError: Si hay cotizaciones asociadas al tipo.
         """
+        if self._repo_cotizacion.leer_historico_por_tipo(id):
+            raise ValueError(
+                "No se puede eliminar: tiene cotizaciones asociadas."
+            )
         return self._repo.eliminar(id)
 
 
@@ -303,10 +405,18 @@ class ServicioLibro:
         repositorio: IRepositorio[Libro],
         repo_editorial: IRepositorio[Editorial],
         repo_genero: IRepositorio[Genero],
+        repo_precio: IRepositorio[Precio],
+        repo_stock: IRepositorioStock,
     ) -> None:
         self._repo = repositorio
         self._repo_editorial = repo_editorial
         self._repo_genero = repo_genero
+        self._repo_precio = repo_precio
+        self._repo_stock = repo_stock
+
+    def siguiente_id(self) -> int:
+        """Retorna el próximo id disponible (el mayor existente más 1)."""
+        return max((l.id for l in self._repo.leer_todos()), default=0) + 1
 
     def crear(
         self,
@@ -333,13 +443,14 @@ class ServicioLibro:
         Raises:
             ValueError: Si el ISBN ya existe, o la editorial/género no existen.
         """
-        if any(libro.isbn == isbn.strip() for libro in self._repo.leer_todos()):
-            raise ValueError(f"Ya existe un libro con el ISBN '{isbn}'.")
+        libro = Libro(id, isbn, titulo, autor, editorial_id, genero_id)
+        if any(otro.isbn == libro.isbn for otro in self._repo.leer_todos()):
+            raise ValueError(f"Ya existe un libro con el ISBN '{libro.isbn}'.")
         if self._repo_editorial.leer_por_id(editorial_id) is None:
             raise ValueError(f"No existe una editorial con id {editorial_id}.")
         if self._repo_genero.leer_por_id(genero_id) is None:
             raise ValueError(f"No existe un género con id {genero_id}.")
-        return self._repo.crear(Libro(id, isbn, titulo, autor, editorial_id, genero_id))
+        return self._repo.crear(libro)
 
     def obtener_todos(self) -> List[Libro]:
         """Retorna todos los libros registrados."""
@@ -378,20 +489,21 @@ class ServicioLibro:
         libro = self._repo.leer_por_id(id)
         if libro is None:
             raise ValueError(f"No existe un libro con id {id}.")
-        duplicado_isbn = any(
-            libro.isbn == isbn.strip() and libro.id != id for libro in self._repo.leer_todos()
-        )
-        if duplicado_isbn:
-            raise ValueError(f"Ya existe un libro con el ISBN '{isbn}'.")
-        if self._repo_editorial.leer_por_id(editorial_id) is None:
-            raise ValueError(f"No existe una editorial con id {editorial_id}.")
-        if self._repo_genero.leer_por_id(genero_id) is None:
-            raise ValueError(f"No existe un género con id {genero_id}.")
         libro.isbn = isbn
         libro.titulo = titulo
         libro.autor = autor
         libro.editorial_id = editorial_id
         libro.genero_id = genero_id
+        duplicado_isbn = any(
+            otro.isbn == libro.isbn and otro.id != id
+            for otro in self._repo.leer_todos()
+        )
+        if duplicado_isbn:
+            raise ValueError(f"Ya existe un libro con el ISBN '{libro.isbn}'.")
+        if self._repo_editorial.leer_por_id(editorial_id) is None:
+            raise ValueError(f"No existe una editorial con id {editorial_id}.")
+        if self._repo_genero.leer_por_id(genero_id) is None:
+            raise ValueError(f"No existe un género con id {genero_id}.")
         return self._repo.actualizar(libro)
 
     def eliminar(self, id: int) -> bool:
@@ -402,7 +514,19 @@ class ServicioLibro:
 
         Returns:
             bool: True si fue eliminado, False si no existía.
+
+        Raises:
+            ValueError: Si el libro tiene precios o stock asociados.
         """
+        precios = self._repo_precio.leer_todos()
+        if any(precio.libro_id == id for precio in precios):
+            raise ValueError(
+                "No se puede eliminar: tiene precios asociados."
+            )
+        if self._repo_stock.leer_por_libro(id) is not None:
+            raise ValueError(
+                "No se puede eliminar: tiene stock registrado."
+            )
         return self._repo.eliminar(id)
 
 
@@ -419,7 +543,13 @@ class ServicioPrecio:
         self._repo_libro = repo_libro
         self._repo_moneda = repo_moneda
 
-    def crear(self, id: int, libro_id: int, moneda_id: int, valor: float) -> Precio:
+    def siguiente_id(self) -> int:
+        """Retorna el próximo id disponible (el mayor existente más 1)."""
+        return max((p.id for p in self._repo.leer_todos()), default=0) + 1
+
+    def crear(
+        self, id: int, libro_id: int, moneda_id: int, valor: float
+    ) -> Precio:
         """Crea un precio para un libro en una moneda dada.
 
         Args:
@@ -432,8 +562,8 @@ class ServicioPrecio:
             Precio: El precio creado.
 
         Raises:
-            ValueError: Si ya existe un precio para esa combinación libro+moneda,
-                        o si el libro/moneda no existen.
+            ValueError: Si ya existe un precio para esa combinación
+                        libro+moneda, o si el libro/moneda no existen.
         """
         if self._repo_libro.leer_por_id(libro_id) is None:
             raise ValueError(f"No existe un libro con id {libro_id}.")
@@ -445,7 +575,8 @@ class ServicioPrecio:
         )
         if duplicado:
             raise ValueError(
-                f"Ya existe un precio para el libro {libro_id} en la moneda {moneda_id}."
+                f"Ya existe un precio para el libro {libro_id} "
+                f"en la moneda {moneda_id}."
             )
         return self._repo.crear(Precio(id, libro_id, moneda_id, valor))
 
@@ -468,7 +599,9 @@ class ServicioPrecio:
         """
         return [p for p in self._repo.leer_todos() if p.libro_id == libro_id]
 
-    def actualizar(self, id: int, libro_id: int, moneda_id: int, valor: float) -> Precio:
+    def actualizar(
+        self, id: int, libro_id: int, moneda_id: int, valor: float
+    ) -> Precio:
         """Actualiza los datos de un precio existente.
 
         Args:
@@ -482,7 +615,8 @@ class ServicioPrecio:
 
         Raises:
             ValueError: Si no existe el precio, si el libro/moneda no existen,
-                        o si la combinación libro+moneda ya está en uso por otro precio.
+                        o si la combinación libro+moneda ya está en uso por
+                        otro precio.
         """
         precio = self._repo.leer_por_id(id)
         if precio is None:
@@ -497,7 +631,8 @@ class ServicioPrecio:
         )
         if duplicado:
             raise ValueError(
-                f"Ya existe un precio para el libro {libro_id} en la moneda {moneda_id}."
+                f"Ya existe un precio para el libro {libro_id} "
+                f"en la moneda {moneda_id}."
             )
         precio.libro_id = libro_id
         precio.moneda_id = moneda_id
@@ -574,7 +709,9 @@ class ServicioStock:
         """
         stock = self._repo.leer_por_libro(libro_id)
         if stock is None:
-            raise ValueError(f"No existe stock registrado para el libro {libro_id}.")
+            raise ValueError(
+                f"No existe stock registrado para el libro {libro_id}."
+            )
         stock.cantidad = cantidad
         return self._repo.actualizar(stock)
 
@@ -619,7 +756,9 @@ class ServicioCotizacionDolar:
                         ese tipo y fecha.
         """
         if self._repo_tipo.leer_por_id(tipo_id) is None:
-            raise ValueError(f"No existe un tipo de cotización con id {tipo_id}.")
+            raise ValueError(
+                f"No existe un tipo de cotización con id {tipo_id}."
+            )
         return self._repo.crear(CotizacionDolar(tipo_id, fecha, valor))
 
     def obtener_por_tipo_y_fecha(
@@ -636,25 +775,31 @@ class ServicioCotizacionDolar:
         """
         return self._repo.leer_por_tipo_y_fecha(tipo_id, fecha)
 
-    def obtener_historico_por_tipo(self, tipo_id: int) -> List[CotizacionDolar]:
+    def obtener_historico_por_tipo(
+        self, tipo_id: int
+    ) -> List[CotizacionDolar]:
         """Retorna el historial de cotizaciones de un tipo, ordenado por fecha.
 
         Args:
             tipo_id (int): ID del tipo de cotización.
 
         Returns:
-            List[CotizacionDolar]: Lista de cotizaciones históricas ordenadas por fecha.
+            List[CotizacionDolar]: Lista de cotizaciones históricas ordenadas
+            por fecha.
         """
         return self._repo.leer_historico_por_tipo(tipo_id)
 
-    def obtener_ultima_cotizacion(self, tipo_id: int) -> Optional[CotizacionDolar]:
+    def obtener_ultima_cotizacion(
+        self, tipo_id: int
+    ) -> Optional[CotizacionDolar]:
         """Retorna la cotización más reciente disponible para un tipo.
 
         Args:
             tipo_id (int): ID del tipo de cotización.
 
         Returns:
-            Optional[CotizacionDolar]: La cotización más reciente, o None si no hay registros.
+            Optional[CotizacionDolar]: La cotización más reciente, o None si
+            no hay registros.
         """
         historico = self._repo.leer_historico_por_tipo(tipo_id)
         return historico[-1] if historico else None
@@ -678,7 +823,8 @@ class ServicioCotizacionDolar:
         cotizacion = self._repo.leer_por_tipo_y_fecha(tipo_id, fecha)
         if cotizacion is None:
             raise ValueError(
-                f"No existe cotización para el tipo {tipo_id} en la fecha {fecha}."
+                f"No existe cotización para el tipo {tipo_id} "
+                f"en la fecha {fecha}."
             )
         cotizacion.valor = valor
         return self._repo.actualizar(cotizacion)
