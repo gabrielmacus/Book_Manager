@@ -1,7 +1,9 @@
 [Ejercicio 06]
-- Creación de la interfaz gráfica.
-- Creación del menú principal con género, editoriales, libros, etc.
-- Permite realizar las funciones de crear registro nuevo, ver el listado, modificar un listado y eliminarlo.
+- Creación de la interfaz de consola en ui/console.py (ConsoleUI) con menú principal y submenús por entidad.
+- Crear, listar, buscar, actualizar y eliminar para las 8 clases, a través de los servicios.
+- Los ids de alta se asignan con siguiente_id() y los errores de los servicios se muestran por consola.
+- Consultas adicionales: precios de un libro, histórico y última cotización de un tipo.
+- Adaptación de la clase Servicios a los constructores actuales de los servicios.
 
 [Ejercicio 05]
 - Creación de preload_data.py, que genera los archivos CSV de importación en migrations/csv.
