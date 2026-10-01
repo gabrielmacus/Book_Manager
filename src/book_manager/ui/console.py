@@ -84,6 +84,30 @@ class ConsoleUI:
     def _pause(self) -> None:
         input("\nPresione Enter para continuar...")
 
+    def _referencia(
+        self, servicio: Any, id: int, atributo: str = "nombre"
+    ) -> str:
+        """Retorna 'valor (id)' del registro relacionado, o solo el id."""
+        registro = servicio.obtener_por_id(id)
+        if registro is None:
+            return str(id)
+        return f"{getattr(registro, atributo)} ({id})"
+
+    def _editorial(self, id: int) -> str:
+        return self._referencia(self.servicios.editoriales, id)
+
+    def _genero(self, id: int) -> str:
+        return self._referencia(self.servicios.generos, id)
+
+    def _libro(self, id: int) -> str:
+        return self._referencia(self.servicios.libros, id, "titulo")
+
+    def _moneda(self, id: int) -> str:
+        return self._referencia(self.servicios.monedas, id, "codigo")
+
+    def _tipo(self, id: int) -> str:
+        return self._referencia(self.servicios.tipos, id)
+
     def _display_list(
         self,
         titulo: str,
@@ -296,8 +320,8 @@ class ConsoleUI:
             lambda libro: (
                 f"ID: {libro.id} | ISBN: {libro.isbn} | "
                 f"Título: {libro.titulo} | Autor: {libro.autor} | "
-                f"Editorial: {libro.editorial_id} | "
-                f"Género: {libro.genero_id}"
+                f"Editorial: {self._editorial(libro.editorial_id)} | "
+                f"Género: {self._genero(libro.genero_id)}"
             ),
         )
 
@@ -310,8 +334,8 @@ class ConsoleUI:
             print(
                 f"ID: {libro.id} | ISBN: {libro.isbn} | "
                 f"Título: {libro.titulo} | Autor: {libro.autor} | "
-                f"Editorial: {libro.editorial_id} | "
-                f"Género: {libro.genero_id}"
+                f"Editorial: {self._editorial(libro.editorial_id)} | "
+                f"Género: {self._genero(libro.genero_id)}"
             )
         else:
             print(f"No se encontró un libro con ID {id}.")
@@ -565,8 +589,10 @@ class ConsoleUI:
                 id, libro_id, moneda_id, valor
             )
             print(
-                f"Precio creado: ID {precio.id} | Libro {precio.libro_id} | "
-                f"Moneda {precio.moneda_id} | Valor: {precio.valor}"
+                f"Precio creado: ID {precio.id} | "
+                f"Libro {self._libro(precio.libro_id)} | "
+                f"Moneda {self._moneda(precio.moneda_id)} | "
+                f"Valor: {precio.valor}"
             )
         except ValueError as e:
             print(f"Error: {e}")
@@ -577,8 +603,8 @@ class ConsoleUI:
             "Listado de Precios",
             self.servicios.precios.obtener_todos(),
             lambda p: (
-                f"ID: {p.id} | Libro ID: {p.libro_id} | "
-                f"Moneda ID: {p.moneda_id} | Valor: {p.valor}"
+                f"ID: {p.id} | Libro: {self._libro(p.libro_id)} | "
+                f"Moneda: {self._moneda(p.moneda_id)} | Valor: {p.valor}"
             ),
         )
 
@@ -589,8 +615,9 @@ class ConsoleUI:
         precio = self.servicios.precios.obtener_por_id(id)
         if precio:
             print(
-                f"ID: {precio.id} | Libro ID: {precio.libro_id} | "
-                f"Moneda ID: {precio.moneda_id} | Valor: {precio.valor}"
+                f"ID: {precio.id} | Libro: {self._libro(precio.libro_id)} | "
+                f"Moneda: {self._moneda(precio.moneda_id)} | "
+                f"Valor: {precio.valor}"
             )
         else:
             print(f"No se encontró un precio con ID {id}.")
@@ -602,10 +629,10 @@ class ConsoleUI:
         libro_id = self._get_input("ID Libro: ", int)
         precios = self.servicios.precios.obtener_por_libro(libro_id)
         self._display_list(
-            f"Precios del Libro {libro_id}",
+            f"Precios del Libro {self._libro(libro_id)}",
             precios,
             lambda p: (
-                f"ID: {p.id} | Moneda ID: {p.moneda_id} | "
+                f"ID: {p.id} | Moneda: {self._moneda(p.moneda_id)} | "
                 f"Valor: {p.valor}"
             ),
         )
@@ -680,7 +707,7 @@ class ConsoleUI:
         try:
             stock = self.servicios.stock.crear(libro_id, cantidad)
             print(
-                f"Stock registrado: Libro {stock.libro_id} | "
+                f"Stock registrado: Libro {self._libro(stock.libro_id)} | "
                 f"Cantidad: {stock.cantidad}"
             )
         except ValueError as e:
@@ -691,7 +718,9 @@ class ConsoleUI:
         self._display_list(
             "Listado de Stock",
             self.servicios.stock.obtener_todos(),
-            lambda s: f"Libro ID: {s.libro_id} | Cantidad: {s.cantidad}",
+            lambda s: (
+                f"Libro: {self._libro(s.libro_id)} | Cantidad: {s.cantidad}"
+            ),
         )
 
     def _buscar_stock(self) -> None:
@@ -700,7 +729,10 @@ class ConsoleUI:
         libro_id = self._get_input("ID Libro a consultar: ", int)
         stock = self.servicios.stock.obtener_por_libro(libro_id)
         if stock:
-            print(f"Libro ID: {stock.libro_id} | Cantidad: {stock.cantidad}")
+            print(
+                f"Libro: {self._libro(stock.libro_id)} | "
+                f"Cantidad: {stock.cantidad}"
+            )
         else:
             print(
                 "No se encontró stock registrado para el libro "
@@ -716,7 +748,7 @@ class ConsoleUI:
         try:
             stock = self.servicios.stock.actualizar(libro_id, cantidad)
             print(
-                f"Stock actualizado: Libro {stock.libro_id} | "
+                f"Stock actualizado: Libro {self._libro(stock.libro_id)} | "
                 f"Cantidad: {stock.cantidad}"
             )
         except ValueError as e:
@@ -777,7 +809,7 @@ class ConsoleUI:
             fecha = datetime.date.fromisoformat(fecha_str)
             cotiz = self.servicios.cotizaciones.crear(tipo_id, fecha, valor)
             print(
-                f"Cotización registrada: Tipo {cotiz.tipo_id} | "
+                f"Cotización registrada: Tipo {self._tipo(cotiz.tipo_id)} | "
                 f"Fecha {cotiz.fecha} | Valor: {cotiz.valor}"
             )
         except ValueError as e:
@@ -796,7 +828,8 @@ class ConsoleUI:
             )
             if cotiz:
                 print(
-                    f"Tipo ID: {cotiz.tipo_id} | Fecha: {cotiz.fecha} | "
+                    f"Tipo: {self._tipo(cotiz.tipo_id)} | "
+                    f"Fecha: {cotiz.fecha} | "
                     f"Valor: {cotiz.valor}"
                 )
             else:
@@ -813,7 +846,7 @@ class ConsoleUI:
             tipo_id
         )
         self._display_list(
-            f"Histórico de Cotizaciones - Tipo {tipo_id}",
+            f"Histórico de Cotizaciones - Tipo {self._tipo(tipo_id)}",
             historico,
             lambda c: f"Fecha: {c.fecha} | Valor: {c.valor}",
         )
@@ -844,7 +877,7 @@ class ConsoleUI:
                 tipo_id, fecha, valor
             )
             print(
-                f"Cotización actualizada: Tipo {cotiz.tipo_id} | "
+                f"Cotización actualizada: Tipo {self._tipo(cotiz.tipo_id)} | "
                 f"Fecha {cotiz.fecha} | Valor: {cotiz.valor}"
             )
         except ValueError as e:
