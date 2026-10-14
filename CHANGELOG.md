@@ -1,3 +1,14 @@
+## Sprint 2
+
+[Ejercicio 01]
+- Creación de la rama Sprint_2 a partir de Sprint_1.
+- Nueva estructura de directorios: database/connection.py, models/models.py, migrations/migrations.py y migrations/sql.
+- Dependencias en requirements.txt: sqlalchemy, psycopg2-binary, python-dotenv y requests.
+- README actualizado al Sprint 2.
+- Archivo .env con API_URL; DATABASE_URL va en .env.local (ignorado por git) o como secret de Colab.
+
+## Sprint 1
+
 [Ejercicio 07]
 - Creación del archivo main.py con la función main(import_default_data), que ejecuta ConsoleUI.
 - Con import_default_data=True genera los CSV de importación con generar_csvs antes de iniciar; con False usa los datos existentes.
