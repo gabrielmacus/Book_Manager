@@ -1,5 +1,10 @@
 ## Sprint 2
 
+[Ejercicio 02]
+- Creación de la clase ConexionDB en database/connection.py con SQLAlchemy.
+- Lee DATABASE_URL del entorno, de .env o de .env.local (sin pisar variables ya definidas).
+- Expone el engine, nueva_sesion() para obtener una Session y cerrar() para liberar conexiones.
+
 [Ejercicio 01]
 - Creación de la rama Sprint_2 a partir de Sprint_1.
 - Nueva estructura de directorios: database/connection.py, models/models.py, migrations/migrations.py y migrations/sql.
