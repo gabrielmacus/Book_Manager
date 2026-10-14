@@ -75,7 +75,7 @@ class ConsoleUI:
         except ImportError:
             en_notebook = False
         if en_notebook:
-            clear_output()
+            clear_output(wait=True)
         else:
             os.system("cls" if os.name == "nt" else "clear")
 

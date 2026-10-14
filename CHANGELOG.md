@@ -1,5 +1,9 @@
 ## Sprint 2
 
+[Ejercicio 03]
+- Context manager transaccion() en ConexionDB: hace commit si el bloque termina bien, rollback si falla y siempre cierra la sesión.
+- Corrección: la consola usa clear_output(wait=True) para que Colab no salte de celda al elegir una opción.
+
 [Ejercicio 02]
 - Creación de la clase ConexionDB en database/connection.py con SQLAlchemy.
 - Lee DATABASE_URL del entorno, de .env o de .env.local (sin pisar variables ya definidas).

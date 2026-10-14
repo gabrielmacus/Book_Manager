@@ -1,7 +1,8 @@
 """Conexión a la base de datos con SQLAlchemy."""
 import os
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional
+from typing import Iterator, Optional
 
 from dotenv import load_dotenv
 from sqlalchemy import Engine, create_engine
@@ -42,6 +43,26 @@ class ConexionDB:
     def nueva_sesion(self) -> Session:
         """Devuelve una nueva sesión para operar con la base de datos."""
         return self._sesiones()
+
+    @contextmanager
+    def transaccion(self) -> Iterator[Session]:
+        """Abre una sesión y la confirma o revierte al salir del bloque.
+
+        Si el bloque termina bien se hace commit; si lanza una excepción se
+        hace rollback y la excepción se propaga. La sesión siempre se cierra.
+
+        Yields:
+            Session: Sesión para operar dentro de la transacción.
+        """
+        sesion = self.nueva_sesion()
+        try:
+            yield sesion
+            sesion.commit()
+        except Exception:
+            sesion.rollback()
+            raise
+        finally:
+            sesion.close()
 
     def cerrar(self) -> None:
         """Libera las conexiones abiertas del engine."""
