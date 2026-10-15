@@ -1,4 +1,9 @@
 ## Sprint 2
+[Ejercicio 06]
+-Adaptación de la clase Servicios a los constructores actuales de los servicios.
+-Migracion de base de datos a SQL
+-Corrección de errores
+
 [Ejercicio 05]
 -Migración de los datos de los CSV a la base de datos y generación de  SQL
 

@@ -1,69 +1,20 @@
 """Interfaz de consola de Book Manager."""
 import datetime
 import os
-from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List
 
-from book_manager.repositories.repositories import (
-    RepositorioCotizacionDolarCsv,
-    RepositorioEditorialCsv,
-    RepositorioGeneroCsv,
-    RepositorioLibroCsv,
-    RepositorioMonedaCsv,
-    RepositorioPrecioCsv,
-    RepositorioStockCsv,
-    RepositorioTipoCotizacionCsv,
-)
-from book_manager.services.services import (
-    ServicioCotizacionDolar,
-    ServicioEditorial,
-    ServicioGenero,
-    ServicioLibro,
-    ServicioMoneda,
-    ServicioPrecio,
-    ServicioStock,
-    ServicioTipoCotizacion,
-)
-
-
-class Servicios:
-    def __init__(self, ruta_csv: Optional[Path] = None) -> None:
-        if ruta_csv is None:
-            ruta_csv = (
-                Path(__file__).resolve().parent.parent / "migrations" / "csv"
-            )
-
-        repo_genero = RepositorioGeneroCsv(ruta_csv / "generos.csv")
-        repo_editorial = RepositorioEditorialCsv(ruta_csv / "editoriales.csv")
-        repo_moneda = RepositorioMonedaCsv(ruta_csv / "monedas.csv")
-        repo_tipo = RepositorioTipoCotizacionCsv(
-            ruta_csv / "tipos_cotizacion.csv"
-        )
-        repo_libro = RepositorioLibroCsv(ruta_csv / "libros.csv")
-        repo_precio = RepositorioPrecioCsv(ruta_csv / "precios.csv")
-        repo_stock = RepositorioStockCsv(ruta_csv / "stock.csv")
-        repo_cotizacion = RepositorioCotizacionDolarCsv(
-            ruta_csv / "cotizaciones.csv"
-        )
-
-        self.generos = ServicioGenero(repo_genero, repo_libro)
-        self.editoriales = ServicioEditorial(repo_editorial, repo_libro)
-        self.monedas = ServicioMoneda(repo_moneda, repo_precio)
-        self.tipos = ServicioTipoCotizacion(repo_tipo, repo_cotizacion)
-        self.libros = ServicioLibro(
-            repo_libro, repo_editorial, repo_genero, repo_precio, repo_stock
-        )
-        self.precios = ServicioPrecio(repo_precio, repo_libro, repo_moneda)
-        self.stock = ServicioStock(repo_stock, repo_libro)
-        self.cotizaciones = ServicioCotizacionDolar(repo_cotizacion, repo_tipo)
+from book_manager.services.services import Servicios
 
 
 class ConsoleUI:
-    def __init__(
-        self, servicios: Optional[Servicios] = None
-    ) -> None:
-        if servicios is None:
-            servicios = Servicios()
+    """Interfaz de usuario por consola."""
+
+    def __init__(self, servicios: Servicios) -> None:
+        """Inicializa la interfaz con el contenedor de servicios.
+
+        Args:
+            servicios (Servicios): Contenedor con los servicios de la aplicación.
+        """
         self.servicios = servicios
 
     def _clear_screen(self) -> None:

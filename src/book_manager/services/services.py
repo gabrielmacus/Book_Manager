@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import datetime
 from typing import List, Optional
 
@@ -840,3 +841,17 @@ class ServicioCotizacionDolar:
             bool: True si fue eliminada, False si no existía.
         """
         return self._repo.eliminar(tipo_id, fecha)
+
+
+@dataclass
+class Servicios:
+    """Contenedor con todas las instancias de los servicios del sistema."""
+
+    generos: ServicioGenero
+    editoriales: ServicioEditorial
+    monedas: ServicioMoneda
+    tipos: ServicioTipoCotizacion
+    libros: ServicioLibro
+    precios: ServicioPrecio
+    stock: ServicioStock
+    cotizaciones: ServicioCotizacionDolar

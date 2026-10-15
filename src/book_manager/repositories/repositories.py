@@ -1,9 +1,14 @@
 import abc
 import csv
 import datetime
+from datetime import date
 from pathlib import Path
 from typing import Any, Generic, List, Optional, TypeVar
 
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+
+from book_manager.database.connection import ConexionDB
 from book_manager.entities.entities import (
     CotizacionDolar,
     Editorial,
@@ -15,8 +20,19 @@ from book_manager.entities.entities import (
     Stock,
     TipoCotizacion,
 )
+from book_manager.models.models import (
+    CotizacionDolarModel,
+    EditorialModel,
+    GeneroModel,
+    LibroModel,
+    MonedaModel,
+    PrecioModel,
+    StockModel,
+    TipoCotizacionModel,
+)
 
 T = TypeVar('T', bound=EntidadBase)
+M = TypeVar('M')
 
 
 class IRepositorio(abc.ABC, Generic[T]):
@@ -429,3 +445,563 @@ class RepositorioCotizacionDolarCsv(
 
     def eliminar(self, tipo_id: int, fecha: datetime.date) -> bool:
         return super().eliminar((tipo_id, fecha))
+
+
+class _RepositorioDBBase(IRepositorio[T], Generic[T, M]):
+    """Base para repositorios basados en base de datos con clave primaria id."""
+
+    _modelo: type
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Inicializa el repositorio con la conexión a la base de datos.
+
+        Args:
+            conexion (ConexionDB): Administrador de conexión a la base de datos.
+        """
+        self._conexion = conexion
+
+    @abc.abstractmethod
+    def _a_entidad(self, modelo: M) -> T:
+        """Convierte una instancia de modelo ORM a una entidad de dominio.
+
+        Args:
+            modelo (M): Instancia del modelo de SQLAlchemy.
+
+        Returns:
+            T: Entidad de dominio correspondiente.
+        """
+        pass
+
+    @abc.abstractmethod
+    def _a_modelo(self, entidad: T) -> M:
+        """Convierte una entidad de dominio a un modelo ORM.
+
+        Args:
+            entidad (T): Entidad de dominio.
+
+        Returns:
+            M: Instancia del modelo de SQLAlchemy correspondiente.
+        """
+        pass
+
+    @abc.abstractmethod
+    def _actualizar_modelo(self, modelo: M, entidad: T) -> None:
+        """Actualiza los atributos del modelo existente a partir de la entidad.
+
+        Args:
+            modelo (M): Instancia del modelo existente en la sesión.
+            entidad (T): Entidad con los nuevos datos.
+        """
+        pass
+
+    def crear(self, entidad: T) -> T:
+        """Crea una nueva entidad en la base de datos.
+
+        Args:
+            entidad (T): La entidad a crear.
+
+        Returns:
+            T: La entidad creada.
+
+        Raises:
+            ValueError: Si ya existe una entidad con el mismo ID o error de unicidad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                if sesion.get(self._modelo, entidad.id) is not None:
+                    raise ValueError(
+                        f"Ya existe un registro con el ID {entidad.id}."
+                    )
+                sesion.add(self._a_modelo(entidad))
+            return entidad
+        except IntegrityError as e:
+            raise ValueError(
+                "Error de integridad al crear el registro."
+            ) from e
+
+    def leer_por_id(self, id: int) -> Optional[T]:
+        """Lee una entidad de la base de datos por su ID.
+
+        Args:
+            id (int): El ID de la entidad a leer.
+
+        Returns:
+            Optional[T]: La entidad si se encuentra, None en caso contrario.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelo = sesion.get(self._modelo, id)
+            return self._a_entidad(modelo) if modelo is not None else None
+
+    def leer_todos(self) -> List[T]:
+        """Lee todas las entidades de la base de datos ordenadas por ID.
+
+        Returns:
+            List[T]: Lista de todas las entidades.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelos = sesion.scalars(
+                select(self._modelo).order_by(self._modelo.id)
+            ).all()
+            return [self._a_entidad(m) for m in modelos]
+
+    def actualizar(self, entidad: T) -> T:
+        """Actualiza una entidad existente en la base de datos.
+
+        Args:
+            entidad (T): La entidad a actualizar.
+
+        Returns:
+            T: La entidad actualizada.
+
+        Raises:
+            ValueError: Si no existe el registro o por error de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                modelo = sesion.get(self._modelo, entidad.id)
+                if modelo is None:
+                    raise ValueError(
+                        f"No existe un registro con el ID {entidad.id}."
+                    )
+                self._actualizar_modelo(modelo, entidad)
+            return entidad
+        except IntegrityError as e:
+            raise ValueError(
+                "Error de integridad al actualizar el registro."
+            ) from e
+
+    def eliminar(self, id: int) -> bool:
+        """Elimina una entidad de la base de datos por su ID.
+
+        Args:
+            id (int): El ID de la entidad a eliminar.
+
+        Returns:
+            bool: True si la entidad fue eliminada, False si no se encontró.
+
+        Raises:
+            ValueError: Si la entidad tiene registros asociados que impiden el borrado.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                modelo = sesion.get(self._modelo, id)
+                if modelo is None:
+                    return False
+                sesion.delete(modelo)
+            return True
+        except IntegrityError as e:
+            raise ValueError(
+                "No se puede eliminar: tiene registros asociados."
+            ) from e
+
+
+class RepositorioGeneroDB(_RepositorioDBBase[Genero, GeneroModel]):
+    """Repositorio de base de datos para Genero."""
+
+    _modelo = GeneroModel
+
+    def _a_entidad(self, modelo: GeneroModel) -> Genero:
+        return Genero(modelo.id, modelo.nombre)
+
+    def _a_modelo(self, entidad: Genero) -> GeneroModel:
+        return GeneroModel(id=entidad.id, nombre=entidad.nombre)
+
+    def _actualizar_modelo(
+        self, modelo: GeneroModel, entidad: Genero
+    ) -> None:
+        modelo.nombre = entidad.nombre
+
+
+class RepositorioEditorialDB(_RepositorioDBBase[Editorial, EditorialModel]):
+    """Repositorio de base de datos para Editorial."""
+
+    _modelo = EditorialModel
+
+    def _a_entidad(self, modelo: EditorialModel) -> Editorial:
+        return Editorial(modelo.id, modelo.nombre)
+
+    def _a_modelo(self, entidad: Editorial) -> EditorialModel:
+        return EditorialModel(id=entidad.id, nombre=entidad.nombre)
+
+    def _actualizar_modelo(
+        self, modelo: EditorialModel, entidad: Editorial
+    ) -> None:
+        modelo.nombre = entidad.nombre
+
+
+class RepositorioMonedaDB(_RepositorioDBBase[Moneda, MonedaModel]):
+    """Repositorio de base de datos para Moneda."""
+
+    _modelo = MonedaModel
+
+    def _a_entidad(self, modelo: MonedaModel) -> Moneda:
+        return Moneda(modelo.id, modelo.codigo, modelo.nombre)
+
+    def _a_modelo(self, entidad: Moneda) -> MonedaModel:
+        return MonedaModel(
+            id=entidad.id, codigo=entidad.codigo, nombre=entidad.nombre
+        )
+
+    def _actualizar_modelo(
+        self, modelo: MonedaModel, entidad: Moneda
+    ) -> None:
+        modelo.codigo = entidad.codigo
+        modelo.nombre = entidad.nombre
+
+
+class RepositorioTipoCotizacionDB(
+    _RepositorioDBBase[TipoCotizacion, TipoCotizacionModel]
+):
+    """Repositorio de base de datos para TipoCotizacion."""
+
+    _modelo = TipoCotizacionModel
+
+    def _a_entidad(self, modelo: TipoCotizacionModel) -> TipoCotizacion:
+        return TipoCotizacion(modelo.id, modelo.nombre)
+
+    def _a_modelo(self, entidad: TipoCotizacion) -> TipoCotizacionModel:
+        return TipoCotizacionModel(id=entidad.id, nombre=entidad.nombre)
+
+    def _actualizar_modelo(
+        self, modelo: TipoCotizacionModel, entidad: TipoCotizacion
+    ) -> None:
+        modelo.nombre = entidad.nombre
+
+
+class RepositorioLibroDB(_RepositorioDBBase[Libro, LibroModel]):
+    """Repositorio de base de datos para Libro."""
+
+    _modelo = LibroModel
+
+    def _a_entidad(self, modelo: LibroModel) -> Libro:
+        return Libro(
+            modelo.id,
+            modelo.isbn,
+            modelo.titulo,
+            modelo.autor,
+            modelo.editorial_id,
+            modelo.genero_id,
+        )
+
+    def _a_modelo(self, entidad: Libro) -> LibroModel:
+        return LibroModel(
+            id=entidad.id,
+            isbn=entidad.isbn,
+            titulo=entidad.titulo,
+            autor=entidad.autor,
+            editorial_id=entidad.editorial_id,
+            genero_id=entidad.genero_id,
+        )
+
+    def _actualizar_modelo(
+        self, modelo: LibroModel, entidad: Libro
+    ) -> None:
+        modelo.isbn = entidad.isbn
+        modelo.titulo = entidad.titulo
+        modelo.autor = entidad.autor
+        modelo.editorial_id = entidad.editorial_id
+        modelo.genero_id = entidad.genero_id
+
+
+class RepositorioPrecioDB(_RepositorioDBBase[Precio, PrecioModel]):
+    """Repositorio de base de datos para Precio."""
+
+    _modelo = PrecioModel
+
+    def _a_entidad(self, modelo: PrecioModel) -> Precio:
+        return Precio(
+            modelo.id,
+            modelo.libro_id,
+            modelo.moneda_id,
+            modelo.valor,
+        )
+
+    def _a_modelo(self, entidad: Precio) -> PrecioModel:
+        return PrecioModel(
+            id=entidad.id,
+            libro_id=entidad.libro_id,
+            moneda_id=entidad.moneda_id,
+            valor=entidad.valor,
+        )
+
+    def _actualizar_modelo(
+        self, modelo: PrecioModel, entidad: Precio
+    ) -> None:
+        modelo.libro_id = entidad.libro_id
+        modelo.moneda_id = entidad.moneda_id
+        modelo.valor = entidad.valor
+
+
+class RepositorioStockDB(IRepositorioStock):
+    """Repositorio de base de datos para Stock."""
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Inicializa el repositorio con la conexión a la base de datos.
+
+        Args:
+            conexion (ConexionDB): Administrador de conexión a la base de datos.
+        """
+        self._conexion = conexion
+
+    def crear(self, stock: Stock) -> Stock:
+        """Crea un nuevo registro de stock.
+
+        Args:
+            stock (Stock): El objeto Stock a crear.
+
+        Returns:
+            Stock: El objeto Stock creado.
+
+        Raises:
+            ValueError: Si ya existe un registro de stock para el libro o error de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                if sesion.get(StockModel, stock.libro_id) is not None:
+                    raise ValueError(
+                        f"Ya existe un registro de stock para el libro {stock.libro_id}."
+                    )
+                sesion.add(
+                    StockModel(
+                        libro_id=stock.libro_id, cantidad=stock.cantidad
+                    )
+                )
+            return stock
+        except IntegrityError as e:
+            raise ValueError("Error de integridad al crear el stock.") from e
+
+    def leer_por_libro(self, libro_id: int) -> Optional[Stock]:
+        """Lee un registro de stock por ID de libro.
+
+        Args:
+            libro_id (int): El ID del libro asociado al stock.
+
+        Returns:
+            Optional[Stock]: El objeto Stock si existe, None en caso contrario.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelo = sesion.get(StockModel, libro_id)
+            if modelo is None:
+                return None
+            return Stock(modelo.libro_id, modelo.cantidad)
+
+    def leer_todos(self) -> List[Stock]:
+        """Lee todos los registros de stock ordenados por ID de libro.
+
+        Returns:
+            List[Stock]: Lista con todos los registros de stock.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelos = sesion.scalars(
+                select(StockModel).order_by(StockModel.libro_id)
+            ).all()
+            return [Stock(m.libro_id, m.cantidad) for m in modelos]
+
+    def actualizar(self, stock: Stock) -> Stock:
+        """Actualiza un registro de stock existente.
+
+        Args:
+            stock (Stock): El objeto Stock con la nueva cantidad.
+
+        Returns:
+            Stock: El objeto Stock actualizado.
+
+        Raises:
+            ValueError: Si no existe el stock para actualizar o error de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                modelo = sesion.get(StockModel, stock.libro_id)
+                if modelo is None:
+                    raise ValueError(
+                        f"No existe un registro de stock para el libro {stock.libro_id}."
+                    )
+                modelo.cantidad = stock.cantidad
+            return stock
+        except IntegrityError as e:
+            raise ValueError(
+                "Error de integridad al actualizar el stock."
+            ) from e
+
+    def eliminar(self, libro_id: int) -> bool:
+        """Elimina un registro de stock por ID de libro.
+
+        Args:
+            libro_id (int): El ID del libro asociado al stock a eliminar.
+
+        Returns:
+            bool: True si el stock fue eliminado, False si no se encontró.
+
+        Raises:
+            ValueError: Si no se puede eliminar por restricciones de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                modelo = sesion.get(StockModel, libro_id)
+                if modelo is None:
+                    return False
+                sesion.delete(modelo)
+            return True
+        except IntegrityError as e:
+            raise ValueError(
+                "No se puede eliminar: tiene registros asociados."
+            ) from e
+
+
+class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
+    """Repositorio de base de datos para CotizacionDolar."""
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Inicializa el repositorio con la conexión a la base de datos.
+
+        Args:
+            conexion (ConexionDB): Administrador de conexión a la base de datos.
+        """
+        self._conexion = conexion
+
+    def crear(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
+        """Crea una nueva cotización de dólar.
+
+        Args:
+            cotizacion (CotizacionDolar): El objeto CotizacionDolar a crear.
+
+        Returns:
+            CotizacionDolar: El objeto CotizacionDolar creado.
+
+        Raises:
+            ValueError: Si ya existe una cotización para el mismo tipo y fecha o error de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                if (
+                    sesion.get(
+                        CotizacionDolarModel,
+                        (cotizacion.tipo_id, cotizacion.fecha),
+                    )
+                    is not None
+                ):
+                    raise ValueError(
+                        f"Ya existe una cotización para el tipo {cotizacion.tipo_id} "
+                        f"en la fecha {cotizacion.fecha}."
+                    )
+                sesion.add(
+                    CotizacionDolarModel(
+                        tipo_id=cotizacion.tipo_id,
+                        fecha=cotizacion.fecha,
+                        valor=cotizacion.valor,
+                    )
+                )
+            return cotizacion
+        except IntegrityError as e:
+            raise ValueError(
+                "Error de integridad al crear la cotización."
+            ) from e
+
+    def leer_por_tipo_y_fecha(
+        self, tipo_id: int, fecha: date
+    ) -> Optional[CotizacionDolar]:
+        """Lee una cotización de dólar por tipo y fecha.
+
+        Args:
+            tipo_id (int): El ID del tipo de cotización.
+            fecha (date): La fecha de la cotización.
+
+        Returns:
+            Optional[CotizacionDolar]: La cotización si se encuentra, None en caso contrario.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelo = sesion.get(CotizacionDolarModel, (tipo_id, fecha))
+            if modelo is None:
+                return None
+            return CotizacionDolar(modelo.tipo_id, modelo.fecha, modelo.valor)
+
+    def leer_historico_por_tipo(
+        self, tipo_id: int
+    ) -> List[CotizacionDolar]:
+        """Lee el histórico de cotizaciones para un tipo específico ordenado por fecha.
+
+        Args:
+            tipo_id (int): El ID del tipo de cotización.
+
+        Returns:
+            List[CotizacionDolar]: Lista de cotizaciones históricas ordenadas por fecha.
+        """
+        with self._conexion.transaccion() as sesion:
+            sentencia = (
+                select(CotizacionDolarModel)
+                .where(CotizacionDolarModel.tipo_id == tipo_id)
+                .order_by(CotizacionDolarModel.fecha)
+            )
+            modelos = sesion.scalars(sentencia).all()
+            return [
+                CotizacionDolar(m.tipo_id, m.fecha, m.valor) for m in modelos
+            ]
+
+    def leer_todos(self) -> List[CotizacionDolar]:
+        """Lee todas las cotizaciones de la base de datos ordenadas por fecha.
+
+        Returns:
+            List[CotizacionDolar]: Lista de todas las cotizaciones.
+        """
+        with self._conexion.transaccion() as sesion:
+            sentencia = select(CotizacionDolarModel).order_by(
+                CotizacionDolarModel.tipo_id, CotizacionDolarModel.fecha
+            )
+            modelos = sesion.scalars(sentencia).all()
+            return [
+                CotizacionDolar(m.tipo_id, m.fecha, m.valor) for m in modelos
+            ]
+
+    def actualizar(self, cotizacion: CotizacionDolar) -> CotizacionDolar:
+        """Actualiza una cotización existente.
+
+        Args:
+            cotizacion (CotizacionDolar): El objeto CotizacionDolar a actualizar.
+
+        Returns:
+            CotizacionDolar: El objeto CotizacionDolar actualizado.
+
+        Raises:
+            ValueError: Si no existe la cotización para actualizar o error de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                modelo = sesion.get(
+                    CotizacionDolarModel, (cotizacion.tipo_id, cotizacion.fecha)
+                )
+                if modelo is None:
+                    raise ValueError(
+                        f"No existe una cotización para el tipo {cotizacion.tipo_id} "
+                        f"en la fecha {cotizacion.fecha}."
+                    )
+                modelo.valor = cotizacion.valor
+            return cotizacion
+        except IntegrityError as e:
+            raise ValueError(
+                "Error de integridad al actualizar la cotización."
+            ) from e
+
+    def eliminar(self, tipo_id: int, fecha: date) -> bool:
+        """Elimina una cotización por tipo y fecha.
+
+        Args:
+            tipo_id (int): El ID del tipo de cotización.
+            fecha (date): La fecha de la cotización a eliminar.
+
+        Returns:
+            bool: True si la cotización fue eliminada, False si no existía.
+
+        Raises:
+            ValueError: Si no se puede eliminar por restricciones de integridad.
+        """
+        try:
+            with self._conexion.transaccion() as sesion:
+                modelo = sesion.get(CotizacionDolarModel, (tipo_id, fecha))
+                if modelo is None:
+                    return False
+                sesion.delete(modelo)
+            return True
+        except IntegrityError as e:
+            raise ValueError(
+                "No se puede eliminar: tiene registros asociados."
+            ) from e
