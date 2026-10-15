@@ -1,5 +1,7 @@
 ## Sprint 2
-
+[Ejercicio 04]
+- Creación de las tablas del sistema con sus tipos de datos y relaciones
+- 
 [Ejercicio 03]
 - Context manager transaccion() en ConexionDB: hace commit si el bloque termina bien, rollback si falla y siempre cierra la sesión.
 - Corrección: la consola usa clear_output(wait=True) para que Colab no salte de celda al elegir una opción.
