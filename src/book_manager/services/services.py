@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import datetime
 from datetime import date
 import os
 from typing import List, Optional
@@ -422,7 +421,7 @@ class ServicioLibro:
 
     def siguiente_id(self) -> int:
         """Retorna el próximo id disponible (el mayor existente más 1)."""
-        return max((l.id for l in self._repo.leer_todos()), default=0) + 1
+        return max((lib.id for lib in self._repo.leer_todos()), default=0) + 1
 
     def crear(
         self,

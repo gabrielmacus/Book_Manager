@@ -1,9 +1,15 @@
 """Interfaz de consola de Book Manager."""
+import csv
 import datetime
 import os
-from typing import Any, Callable, List
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+from requests import RequestException
 
 from book_manager.services.services import Servicios
+
+EXPORTS_DIR = Path(__file__).resolve().parent.parent / "exports"
 
 
 class ConsoleUI:
@@ -13,20 +19,25 @@ class ConsoleUI:
         """Inicializa la interfaz con el contenedor de servicios.
 
         Args:
-            servicios (Servicios): Contenedor con los servicios de la aplicación.
+            servicios (Servicios): Contenedor con los servicios de la
+                aplicación.
         """
         self.servicios = servicios
 
     def _clear_screen(self) -> None:
+        """Limpia la terminal; en notebooks solo imprime un separador.
+
+        En Colab no se borra la salida para que quede registro de todas las
+        operaciones realizadas y el cuadro de input se muestre siempre.
+        """
         try:
             from IPython import get_ipython
-            from IPython.display import clear_output
 
             en_notebook = hasattr(get_ipython(), "kernel")
         except ImportError:
             en_notebook = False
         if en_notebook:
-            clear_output(wait=True)
+            print("\n" + "=" * 60)
         else:
             os.system("cls" if os.name == "nt" else "clear")
 
@@ -891,6 +902,107 @@ class ConsoleUI:
                 print("Opción inválida.")
                 self._pause()
 
+    def _obtener_cotizaciones_api(self) -> None:
+        self._clear_screen()
+        print("--- Obtener Cotizaciones por API ---")
+        try:
+            cotizaciones = self.servicios.cotizaciones.obtener_cotizaciones()
+        except (RequestException, ValueError) as e:
+            print(f"Error: {e}")
+            self._pause()
+            return
+        self._display_list(
+            "Cotizaciones registradas desde la API",
+            cotizaciones,
+            lambda c: (
+                f"Tipo: {self._tipo(c.tipo_id)} | Fecha: {c.fecha} | "
+                f"Valor: {c.valor}"
+            ),
+        )
+
+    def _precios_por_libro(self) -> Dict[int, Dict[str, float]]:
+        """Retorna {libro_id: {código de moneda: valor}} de los precios."""
+        codigos = {
+            m.id: m.codigo for m in self.servicios.monedas.obtener_todos()
+        }
+        precios: Dict[int, Dict[str, float]] = {}
+        for p in self.servicios.precios.obtener_todos():
+            precios.setdefault(p.libro_id, {})[codigos[p.moneda_id]] = p.valor
+        return precios
+
+    def _precio_en(
+        self, valores: Dict[str, float], codigo: str, dolar: Optional[float]
+    ) -> str:
+        """Retorna el precio en la moneda pedida, convirtiendo ARS/USD.
+
+        Args:
+            valores (Dict[str, float]): Precios del libro por código.
+            codigo (str): Código de la moneda a mostrar.
+            dolar (Optional[float]): Cotización para convertir, o None.
+
+        Returns:
+            str: El precio con dos decimales, o '-' si no se puede obtener.
+        """
+        if codigo in valores:
+            return f"{valores[codigo]:.2f}"
+        if dolar and codigo == "ARS" and "USD" in valores:
+            return f"{valores['USD'] * dolar:.2f}"
+        if dolar and codigo == "USD" and "ARS" in valores:
+            return f"{valores['ARS'] / dolar:.2f}"
+        return "-"
+
+    def _lista_bimonetaria(self) -> None:
+        self._clear_screen()
+        print("--- Lista de Precios Bimonetaria ---")
+        for m in self.servicios.monedas.obtener_todos():
+            print(f"{m.id}. {m.codigo} - {m.nombre}")
+        moneda_id = self._get_input("ID de la moneda: ", int)
+        moneda = self.servicios.monedas.obtener_por_id(moneda_id)
+        if moneda is None:
+            print(f"No se encontró una moneda con ID {moneda_id}.")
+            self._pause()
+            return
+        for t in self.servicios.tipos.obtener_todos():
+            print(f"{t.id}. {t.nombre}")
+        tipo_id = self._get_input("ID del tipo de cotización: ", int)
+        ultima = self.servicios.cotizaciones.obtener_ultima_cotizacion(
+            tipo_id
+        )
+        dolar = ultima.valor if ultima else None
+        precios = self._precios_por_libro()
+
+        def fila(libro: Any) -> str:
+            valores = precios.get(libro.id, {})
+            ars = self._precio_en(valores, "ARS", dolar)
+            otra = self._precio_en(valores, moneda.codigo, dolar)
+            return f"{libro.titulo} | ARS: {ars} | {moneda.codigo}: {otra}"
+
+        self._display_list(
+            f"Precios en ARS y {moneda.codigo} (dólar {self._tipo(tipo_id)}: "
+            f"{dolar if dolar else 'sin cotización'})",
+            self.servicios.libros.obtener_todos(),
+            fila,
+        )
+
+    def _exportar_precios_csv(self) -> None:
+        self._clear_screen()
+        print("--- Exportar Precios a CSV ---")
+        codigos = [m.codigo for m in self.servicios.monedas.obtener_todos()]
+        precios = self._precios_por_libro()
+        EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+        ruta = EXPORTS_DIR / "precios.csv"
+        with ruta.open("w", newline="", encoding="utf-8") as archivo:
+            escritor = csv.writer(archivo)
+            escritor.writerow(["isbn", "titulo", *codigos])
+            for libro in self.servicios.libros.obtener_todos():
+                valores = precios.get(libro.id, {})
+                escritor.writerow(
+                    [libro.isbn, libro.titulo,
+                     *(valores.get(c, "") for c in codigos)]
+                )
+        print(f"Precios exportados en {ruta}")
+        self._pause()
+
     def run(self) -> None:
         while True:
             self._clear_screen()
@@ -903,6 +1015,9 @@ class ConsoleUI:
             print("6. Gestión de Precios")
             print("7. Gestión de Stock")
             print("8. Gestión de Cotizaciones Dólar")
+            print("9. Obtener Cotizaciones por API")
+            print("10. Lista de Precios Bimonetaria")
+            print("11. Exportar Precios a CSV")
             print("0. Salir")
             opcion = self._get_input("Seleccione una opción: ", int)
 
@@ -922,6 +1037,12 @@ class ConsoleUI:
                 self.manage_stock()
             elif opcion == 8:
                 self.manage_cotizaciones_dolar()
+            elif opcion == 9:
+                self._obtener_cotizaciones_api()
+            elif opcion == 10:
+                self._lista_bimonetaria()
+            elif opcion == 11:
+                self._exportar_precios_csv()
             elif opcion == 0:
                 print("Saliendo del sistema...")
                 break

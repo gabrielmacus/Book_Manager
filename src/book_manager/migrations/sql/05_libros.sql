@@ -1,0 +1,12 @@
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (1, '9789500000011', 'Rayuela', 'Julio Cortázar', 3, 1);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (2, '9789500000028', 'El Aleph', 'Jorge Luis Borges', 9, 1);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (3, '9789500000035', 'Ficciones', 'Jorge Luis Borges', 9, 1);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (4, '9789500000042', 'Sobre héroes y tumbas', 'Ernesto Sabato', 1, 1);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (5, '9781492056355', 'Fluent Python', 'Luciano Ramalho', 7, 4);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (6, '9780132350884', 'Clean Code', 'Robert C. Martin', 7, 4);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (7, '9789500000073', 'Fundación', 'Isaac Asimov', 2, 6);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (8, '9789500000080', 'Martín Fierro', 'José Hernández', 10, 5);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (9, '9789500000097', 'Sapiens', 'Yuval Noah Harari', 2, 7);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (10, '9789500000103', 'El Principito', 'Antoine de Saint-Exupéry', 4, 3);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (11, '9789500000110', 'Estudio en escarlata', 'Arthur Conan Doyle', 5, 9);
+INSERT INTO libros (id, isbn, titulo, autor, editorial_id, genero_id) VALUES (12, '9789500000127', 'Las venas abiertas de América Latina', 'Eduardo Galeano', 6, 2);

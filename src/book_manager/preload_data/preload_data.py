@@ -4,9 +4,30 @@ Los archivos se escriben en book_manager/migrations/csv y son los mismos que
 leen y guardan los repositorios. Cada clase tiene al menos 10 registros. Los
 datos son de ejemplo (los ISBN son ilustrativos).
 """
-import csv
+from datetime import date
 from pathlib import Path
-from typing import Dict, List, Sequence, Tuple
+from typing import Any, Dict, List
+
+from book_manager.entities.entities import (
+    CotizacionDolar,
+    Editorial,
+    Genero,
+    Libro,
+    Moneda,
+    Precio,
+    Stock,
+    TipoCotizacion,
+)
+from book_manager.repositories.repositories import (
+    RepositorioCotizacionDolarCsv,
+    RepositorioEditorialCsv,
+    RepositorioGeneroCsv,
+    RepositorioLibroCsv,
+    RepositorioMonedaCsv,
+    RepositorioPrecioCsv,
+    RepositorioStockCsv,
+    RepositorioTipoCotizacionCsv,
+)
 
 CSV_DIR = Path(__file__).resolve().parent.parent / "migrations" / "csv"
 
@@ -68,51 +89,65 @@ _VALORES_VENTA = [1080, 1260, 1230, 1240, 1410, 1070, 1080, 1260, 1190, 1340]
 _FECHAS = ["2026-09-29", "2026-09-30"]
 
 
-def _con_id(filas: Sequence[Tuple]) -> List[Tuple]:
-    """Antepone un id correlativo (desde 1) a cada fila."""
-    return [(i, *fila) for i, fila in enumerate(filas, 1)]
+# Repositorio CSV que persiste cada archivo, en orden de dependencias
+_REPOSITORIOS = {
+    "generos": RepositorioGeneroCsv,
+    "editoriales": RepositorioEditorialCsv,
+    "monedas": RepositorioMonedaCsv,
+    "tipos_cotizacion": RepositorioTipoCotizacionCsv,
+    "libros": RepositorioLibroCsv,
+    "precios": RepositorioPrecioCsv,
+    "stock": RepositorioStockCsv,
+    "cotizaciones": RepositorioCotizacionDolarCsv,
+}
 
 
-_TABLAS: Dict[str, Tuple[List[str], List[Tuple]]] = {
-    "generos": (["id", "nombre"], _con_id([(n,) for n in _GENEROS])),
-    "editoriales": (["id", "nombre"], _con_id([(n,) for n in _EDITORIALES])),
-    "monedas": (["id", "codigo", "nombre"], _con_id(_MONEDAS)),
-    "tipos_cotizacion": (["id", "nombre"], _con_id([(n,) for n in _TIPOS])),
-    "libros": (
-        ["id", "isbn", "titulo", "autor", "editorial_id", "genero_id"],
-        _con_id(_LIBROS),
-    ),
-    "precios": (["id", "libro_id", "moneda_id", "valor"], _con_id(_PRECIOS)),
-    "stock": (["libro_id", "cantidad"], _STOCK),
-    "cotizaciones": (
-        ["tipo_id", "fecha", "valor"],
-        [
-            (tipo_id, fecha, float(venta + 5 * n))
+def _entidades() -> Dict[str, List[Any]]:
+    """Arma las entidades de ejemplo de cada archivo, con ids desde 1."""
+    return {
+        "generos": [Genero(i, n) for i, n in enumerate(_GENEROS, 1)],
+        "editoriales": [
+            Editorial(i, n) for i, n in enumerate(_EDITORIALES, 1)
+        ],
+        "monedas": [Moneda(i, c, n) for i, (c, n) in enumerate(_MONEDAS, 1)],
+        "tipos_cotizacion": [
+            TipoCotizacion(i, n) for i, n in enumerate(_TIPOS, 1)
+        ],
+        "libros": [Libro(i, *datos) for i, datos in enumerate(_LIBROS, 1)],
+        "precios": [Precio(i, *datos) for i, datos in enumerate(_PRECIOS, 1)],
+        "stock": [Stock(*datos) for datos in _STOCK],
+        "cotizaciones": [
+            CotizacionDolar(
+                tipo_id, date.fromisoformat(fecha), float(venta + 5 * n)
+            )
             for tipo_id, venta in enumerate(_VALORES_VENTA, 1)
             for n, fecha in enumerate(_FECHAS)
         ],
-    ),
-}
+    }
 
 
 def generar_csvs(
     directorio: Path = CSV_DIR, sobrescribir: bool = False
 ) -> None:
-    """Escribe los CSV de importación en el directorio indicado.
+    """Genera los CSV de importación guardando las entidades de ejemplo.
+
+    La carga se hace a través de los repositorios CSV, que validan las
+    entidades y escriben el formato que luego leen.
 
     Args:
         directorio (Path): Carpeta donde se escriben los archivos.
         sobrescribir (bool): Si es False, no pisa los archivos que ya existen.
     """
     directorio.mkdir(parents=True, exist_ok=True)
-    for nombre, (cabecera, filas) in _TABLAS.items():
+    for nombre, entidades in _entidades().items():
         ruta = directorio / f"{nombre}.csv"
-        if ruta.exists() and not sobrescribir:
-            continue
-        with ruta.open("w", newline="", encoding="utf-8") as archivo:
-            escritor = csv.writer(archivo)
-            escritor.writerow(cabecera)
-            escritor.writerows(filas)
+        if ruta.exists():
+            if not sobrescribir:
+                continue
+            ruta.unlink()
+        repositorio = _REPOSITORIOS[nombre](ruta)
+        for entidad in entidades:
+            repositorio.crear(entidad)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,10 @@
+INSERT INTO generos (id, nombre) VALUES (1, 'Novela');
+INSERT INTO generos (id, nombre) VALUES (2, 'Ensayo');
+INSERT INTO generos (id, nombre) VALUES (3, 'Infantil');
+INSERT INTO generos (id, nombre) VALUES (4, 'Técnico');
+INSERT INTO generos (id, nombre) VALUES (5, 'Poesía');
+INSERT INTO generos (id, nombre) VALUES (6, 'Ciencia ficción');
+INSERT INTO generos (id, nombre) VALUES (7, 'Historia');
+INSERT INTO generos (id, nombre) VALUES (8, 'Biografía');
+INSERT INTO generos (id, nombre) VALUES (9, 'Policial');
+INSERT INTO generos (id, nombre) VALUES (10, 'Autoayuda');

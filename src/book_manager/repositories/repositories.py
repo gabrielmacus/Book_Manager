@@ -448,7 +448,7 @@ class RepositorioCotizacionDolarCsv(
 
 
 class _RepositorioDBBase(IRepositorio[T], Generic[T, M]):
-    """Base para repositorios basados en base de datos con clave primaria id."""
+    """Base para repositorios de base de datos con clave primaria id."""
 
     _modelo: type
 
@@ -456,7 +456,7 @@ class _RepositorioDBBase(IRepositorio[T], Generic[T, M]):
         """Inicializa el repositorio con la conexión a la base de datos.
 
         Args:
-            conexion (ConexionDB): Administrador de conexión a la base de datos.
+            conexion (ConexionDB): Conexión a la base de datos.
         """
         self._conexion = conexion
 
@@ -504,7 +504,8 @@ class _RepositorioDBBase(IRepositorio[T], Generic[T, M]):
             T: La entidad creada.
 
         Raises:
-            ValueError: Si ya existe una entidad con el mismo ID o error de unicidad.
+            ValueError: Si ya existe una entidad con el mismo ID o hay un
+                error de unicidad.
         """
         try:
             with self._conexion.transaccion() as sesion:
@@ -580,7 +581,8 @@ class _RepositorioDBBase(IRepositorio[T], Generic[T, M]):
             bool: True si la entidad fue eliminada, False si no se encontró.
 
         Raises:
-            ValueError: Si la entidad tiene registros asociados que impiden el borrado.
+            ValueError: Si la entidad tiene registros asociados que impiden
+                el borrado.
         """
         try:
             with self._conexion.transaccion() as sesion:
@@ -739,7 +741,7 @@ class RepositorioStockDB(IRepositorioStock):
         """Inicializa el repositorio con la conexión a la base de datos.
 
         Args:
-            conexion (ConexionDB): Administrador de conexión a la base de datos.
+            conexion (ConexionDB): Conexión a la base de datos.
         """
         self._conexion = conexion
 
@@ -753,13 +755,15 @@ class RepositorioStockDB(IRepositorioStock):
             Stock: El objeto Stock creado.
 
         Raises:
-            ValueError: Si ya existe un registro de stock para el libro o error de integridad.
+            ValueError: Si ya existe un registro de stock para el libro o
+                hay un error de integridad.
         """
         try:
             with self._conexion.transaccion() as sesion:
                 if sesion.get(StockModel, stock.libro_id) is not None:
                     raise ValueError(
-                        f"Ya existe un registro de stock para el libro {stock.libro_id}."
+                        "Ya existe un registro de stock para el libro "
+                        f"{stock.libro_id}."
                     )
                 sesion.add(
                     StockModel(
@@ -807,14 +811,16 @@ class RepositorioStockDB(IRepositorioStock):
             Stock: El objeto Stock actualizado.
 
         Raises:
-            ValueError: Si no existe el stock para actualizar o error de integridad.
+            ValueError: Si no existe el stock para actualizar o hay un
+                error de integridad.
         """
         try:
             with self._conexion.transaccion() as sesion:
                 modelo = sesion.get(StockModel, stock.libro_id)
                 if modelo is None:
                     raise ValueError(
-                        f"No existe un registro de stock para el libro {stock.libro_id}."
+                        "No existe un registro de stock para el libro "
+                        f"{stock.libro_id}."
                     )
                 modelo.cantidad = stock.cantidad
             return stock
@@ -833,7 +839,8 @@ class RepositorioStockDB(IRepositorioStock):
             bool: True si el stock fue eliminado, False si no se encontró.
 
         Raises:
-            ValueError: Si no se puede eliminar por restricciones de integridad.
+            ValueError: Si no se puede eliminar por restricciones de
+                integridad.
         """
         try:
             with self._conexion.transaccion() as sesion:
@@ -855,7 +862,7 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
         """Inicializa el repositorio con la conexión a la base de datos.
 
         Args:
-            conexion (ConexionDB): Administrador de conexión a la base de datos.
+            conexion (ConexionDB): Conexión a la base de datos.
         """
         self._conexion = conexion
 
@@ -869,7 +876,8 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
             CotizacionDolar: El objeto CotizacionDolar creado.
 
         Raises:
-            ValueError: Si ya existe una cotización para el mismo tipo y fecha o error de integridad.
+            ValueError: Si ya existe una cotización para el mismo tipo y
+                fecha o hay un error de integridad.
         """
         try:
             with self._conexion.transaccion() as sesion:
@@ -881,7 +889,8 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
                     is not None
                 ):
                     raise ValueError(
-                        f"Ya existe una cotización para el tipo {cotizacion.tipo_id} "
+                        "Ya existe una cotización para el tipo "
+                        f"{cotizacion.tipo_id} "
                         f"en la fecha {cotizacion.fecha}."
                     )
                 sesion.add(
@@ -907,7 +916,8 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
             fecha (date): La fecha de la cotización.
 
         Returns:
-            Optional[CotizacionDolar]: La cotización si se encuentra, None en caso contrario.
+            Optional[CotizacionDolar]: La cotización si se encuentra, None
+                en caso contrario.
         """
         with self._conexion.transaccion() as sesion:
             modelo = sesion.get(CotizacionDolarModel, (tipo_id, fecha))
@@ -918,13 +928,14 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
     def leer_historico_por_tipo(
         self, tipo_id: int
     ) -> List[CotizacionDolar]:
-        """Lee el histórico de cotizaciones para un tipo específico ordenado por fecha.
+        """Lee el histórico de cotizaciones de un tipo, ordenado por fecha.
 
         Args:
             tipo_id (int): El ID del tipo de cotización.
 
         Returns:
-            List[CotizacionDolar]: Lista de cotizaciones históricas ordenadas por fecha.
+            List[CotizacionDolar]: Cotizaciones históricas ordenadas por
+                fecha.
         """
         with self._conexion.transaccion() as sesion:
             sentencia = (
@@ -956,22 +967,25 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
         """Actualiza una cotización existente.
 
         Args:
-            cotizacion (CotizacionDolar): El objeto CotizacionDolar a actualizar.
+            cotizacion (CotizacionDolar): La cotización a actualizar.
 
         Returns:
             CotizacionDolar: El objeto CotizacionDolar actualizado.
 
         Raises:
-            ValueError: Si no existe la cotización para actualizar o error de integridad.
+            ValueError: Si no existe la cotización para actualizar o hay un
+                error de integridad.
         """
         try:
             with self._conexion.transaccion() as sesion:
                 modelo = sesion.get(
-                    CotizacionDolarModel, (cotizacion.tipo_id, cotizacion.fecha)
+                    CotizacionDolarModel,
+                    (cotizacion.tipo_id, cotizacion.fecha),
                 )
                 if modelo is None:
                     raise ValueError(
-                        f"No existe una cotización para el tipo {cotizacion.tipo_id} "
+                        "No existe una cotización para el tipo "
+                        f"{cotizacion.tipo_id} "
                         f"en la fecha {cotizacion.fecha}."
                     )
                 modelo.valor = cotizacion.valor
@@ -992,7 +1006,8 @@ class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
             bool: True si la cotización fue eliminada, False si no existía.
 
         Raises:
-            ValueError: Si no se puede eliminar por restricciones de integridad.
+            ValueError: Si no se puede eliminar por restricciones de
+                integridad.
         """
         try:
             with self._conexion.transaccion() as sesion:

@@ -1,7 +1,14 @@
 """Modelos SQLAlchemy con las tablas del sistema y sus relaciones."""
 from datetime import date
 
-from sqlalchemy import Date, Float, ForeignKey, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    Date,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from book_manager.database.connection import ConexionDB
@@ -16,8 +23,12 @@ class GeneroModel(Base):
 
     __tablename__ = "generos"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
-    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=False
+    )
+    nombre: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False
+    )
 
     libros: Mapped[list["LibroModel"]] = relationship(back_populates="genero")
 
@@ -27,10 +38,16 @@ class EditorialModel(Base):
 
     __tablename__ = "editoriales"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
-    nombre: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=False
+    )
+    nombre: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False
+    )
 
-    libros: Mapped[list["LibroModel"]] = relationship(back_populates="editorial")
+    libros: Mapped[list["LibroModel"]] = relationship(
+        back_populates="editorial"
+    )
 
 
 class MonedaModel(Base):
@@ -38,11 +55,17 @@ class MonedaModel(Base):
 
     __tablename__ = "monedas"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
-    codigo: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=False
+    )
+    codigo: Mapped[str] = mapped_column(
+        String(10), unique=True, nullable=False
+    )
     nombre: Mapped[str] = mapped_column(String(100), nullable=False)
 
-    precios: Mapped[list["PrecioModel"]] = relationship(back_populates="moneda")
+    precios: Mapped[list["PrecioModel"]] = relationship(
+        back_populates="moneda"
+    )
 
 
 class TipoCotizacionModel(Base):
@@ -50,8 +73,12 @@ class TipoCotizacionModel(Base):
 
     __tablename__ = "tipos_cotizacion"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
-    nombre: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=False
+    )
+    nombre: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False
+    )
 
     cotizaciones: Mapped[list["CotizacionDolarModel"]] = relationship(
         back_populates="tipo"
@@ -63,7 +90,9 @@ class LibroModel(Base):
 
     __tablename__ = "libros"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=False
+    )
     isbn: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)
     titulo: Mapped[str] = mapped_column(String(200), nullable=False)
     autor: Mapped[str] = mapped_column(String(150), nullable=False)
@@ -84,7 +113,9 @@ class PrecioModel(Base):
     __tablename__ = "precios"
     __table_args__ = (UniqueConstraint("libro_id", "moneda_id"),)
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    id: Mapped[int] = mapped_column(
+        Integer, primary_key=True, autoincrement=False
+    )
     libro_id: Mapped[int] = mapped_column(ForeignKey("libros.id"))
     moneda_id: Mapped[int] = mapped_column(ForeignKey("monedas.id"))
     valor: Mapped[float] = mapped_column(Float)
@@ -98,7 +129,9 @@ class StockModel(Base):
 
     __tablename__ = "stock"
 
-    libro_id: Mapped[int] = mapped_column(ForeignKey("libros.id"), primary_key=True)
+    libro_id: Mapped[int] = mapped_column(
+        ForeignKey("libros.id"), primary_key=True
+    )
     cantidad: Mapped[int] = mapped_column(Integer)
 
     libro: Mapped["LibroModel"] = relationship(back_populates="stock")
@@ -115,7 +148,9 @@ class CotizacionDolarModel(Base):
     fecha: Mapped[date] = mapped_column(Date, primary_key=True)
     valor: Mapped[float] = mapped_column(Float)
 
-    tipo: Mapped["TipoCotizacionModel"] = relationship(back_populates="cotizaciones")
+    tipo: Mapped["TipoCotizacionModel"] = relationship(
+        back_populates="cotizaciones"
+    )
 
 
 def crear_tablas(conexion: ConexionDB) -> None:

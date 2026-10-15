@@ -1,19 +1,31 @@
 ## Sprint 2
+
+[Ejercicio 08]
+- Nuevas opciones del menú principal: 9. Obtener cotizaciones por API, 10. Lista de precios bimonetaria y 11. Exportar precios a CSV.
+- La lista bimonetaria muestra cada libro en ARS y en la moneda elegida; convierte entre ARS y USD con la última cotización del tipo seleccionado.
+- La exportación genera exports/precios.csv con una columna por cada moneda.
+- Corrección (TP1, Ejercicio 05): generar_csvs carga las entidades de ejemplo a través de los repositorios CSV en lugar de escribir los archivos con csv.writer.
+- Archivos .sql generados por la migración agregados a migrations/sql.
+- Correcciones de estilo PEP8: indentación de migrations.py, líneas largas, nombres ambiguos, imports sin uso y eliminación del ajuste de sys.path en main.py.
+- Dependencia psycopg[binary] en requirements.txt: SQLAlchemy 2.1 usa psycopg (versión 3) como driver por defecto de PostgreSQL.
+- Corrección: en notebooks la consola ya no borra la salida (imprime un separador), para que quede registro de las operaciones y Colab muestre siempre el input.
+
 [Ejercicio 07]
-- Configuración de API_URL en archivo .env para consulta de cotizaciones del dólar.
-- Implementación de obtener_cotizaciones() en ServicioCotizacionDolar con carga de variables vía python-dotenv, sincronización de tipos de cotización y alta/actualización de cotizaciones en el repositorio.
+- Implementación de obtener_cotizaciones() en ServicioCotizacionDolar: lee API_URL del .env con python-dotenv, descarga las cotizaciones de dolarapi, crea los tipos de cotización que no existen y da de alta o actualiza cada cotización.
 
 [Ejercicio 06]
-- Adaptación de la clase Servicios a los constructores actuales de los servicios.
-- Migracion de base de datos a SQL
-- Corrección de errores
+- Repositorios con base de datos (RepositorioGeneroDB, RepositorioEditorialDB, RepositorioMonedaDB, RepositorioTipoCotizacionDB, RepositorioLibroDB, RepositorioPrecioDB, RepositorioStockDB y RepositorioCotizacionDolarDB) que convierten entre modelos y entidades.
+- Corrección (TP1, Ejercicio 07): el armado de repositorios y servicios pasa a main.py; ConsoleUI recibe el contenedor Servicios.
+- main crea las tablas y, con import_default_data=True, genera los CSV y migra los datos a la base.
 
 [Ejercicio 05]
-- Migración de los datos de los CSV a la base de datos y generación de  SQL
+- migrar_datos lee los CSV del Sprint 1 con los repositorios CSV, carga la base en una transacción y genera un archivo .sql por tabla en migrations/sql.
+- La migración borra los datos previos para poder ejecutarse más de una vez sin duplicar.
 
 [Ejercicio 04]
-- Creación de las tablas del sistema con sus tipos de datos y relaciones
-- 
+- Creación de las tablas del sistema en models.py con sus tipos de datos, claves foráneas y relaciones (relationship).
+- Función crear_tablas para crear las tablas en la base.
+
 [Ejercicio 03]
 - Context manager transaccion() en ConexionDB: hace commit si el bloque termina bien, rollback si falla y siempre cierra la sesión.
 - Corrección: la consola usa clear_output(wait=True) para que Colab no salte de celda al elegir una opción.

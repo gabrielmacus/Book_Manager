@@ -1,0 +1,10 @@
+INSERT INTO editoriales (id, nombre) VALUES (1, 'Sudamericana');
+INSERT INTO editoriales (id, nombre) VALUES (2, 'Planeta');
+INSERT INTO editoriales (id, nombre) VALUES (3, 'Alfaguara');
+INSERT INTO editoriales (id, nombre) VALUES (4, 'Anagrama');
+INSERT INTO editoriales (id, nombre) VALUES (5, 'Tusquets');
+INSERT INTO editoriales (id, nombre) VALUES (6, 'Siglo XXI');
+INSERT INTO editoriales (id, nombre) VALUES (7, 'O''Reilly Media');
+INSERT INTO editoriales (id, nombre) VALUES (8, 'Fondo de Cultura Económica');
+INSERT INTO editoriales (id, nombre) VALUES (9, 'Emecé');
+INSERT INTO editoriales (id, nombre) VALUES (10, 'Eudeba');

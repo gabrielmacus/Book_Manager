@@ -1,9 +1,3 @@
-from pathlib import Path
-import sys
-
-# Asegurar que el directorio raíz 'src' esté en sys.path para importaciones
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
 from book_manager.database.connection import ConexionDB
 from book_manager.migrations.migrations import migrar_datos
 from book_manager.models.models import crear_tablas
