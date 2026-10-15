@@ -1,6 +1,11 @@
 from dataclasses import dataclass
 import datetime
+from datetime import date
+import os
 from typing import List, Optional
+
+from dotenv import load_dotenv
+import requests
 
 from book_manager.entities.entities import (
     CotizacionDolar,
@@ -740,13 +745,13 @@ class ServicioCotizacionDolar:
         self._repo_tipo = repo_tipo
 
     def crear(
-        self, tipo_id: int, fecha: datetime.date, valor: float
+        self, tipo_id: int, fecha: date, valor: float
     ) -> CotizacionDolar:
         """Registra una nueva cotización del dólar para un tipo y fecha.
 
         Args:
             tipo_id (int): ID del tipo de cotización.
-            fecha (datetime.date): Fecha de la cotización.
+            fecha (date): Fecha de la cotización.
             valor (float): Valor del dólar en esa fecha (debe ser > 0).
 
         Returns:
@@ -763,13 +768,13 @@ class ServicioCotizacionDolar:
         return self._repo.crear(CotizacionDolar(tipo_id, fecha, valor))
 
     def obtener_por_tipo_y_fecha(
-        self, tipo_id: int, fecha: datetime.date
+        self, tipo_id: int, fecha: date
     ) -> Optional[CotizacionDolar]:
         """Retorna la cotización de un tipo en una fecha específica.
 
         Args:
             tipo_id (int): ID del tipo de cotización.
-            fecha (datetime.date): Fecha de consulta.
+            fecha (date): Fecha de consulta.
 
         Returns:
             Optional[CotizacionDolar]: La cotización, o None si no existe.
@@ -805,14 +810,67 @@ class ServicioCotizacionDolar:
         historico = self._repo.leer_historico_por_tipo(tipo_id)
         return historico[-1] if historico else None
 
+    def obtener_cotizaciones(self) -> List[CotizacionDolar]:
+        """Busca, descarga y registra las cotizaciones del dólar desde la API.
+
+        Lee la URL de la API desde la variable de entorno API_URL, descarga
+        las cotizaciones vigentes y las registra en la base de datos a través
+        del repositorio. Si el tipo de cotización no existe, lo crea. Si ya
+        existe una cotización para el tipo y fecha, actualiza su valor.
+
+        Returns:
+            List[CotizacionDolar]: Lista de cotizaciones registradas o
+            actualizadas.
+
+        Raises:
+            ValueError: Si falta la variable de entorno API_URL.
+            requests.RequestException: Si ocurre un error al consultar la API.
+        """
+        load_dotenv()
+        url = os.getenv("API_URL")
+        if not url:
+            raise ValueError("Falta la variable de entorno API_URL.")
+
+        respuesta = requests.get(url, timeout=10)
+        respuesta.raise_for_status()
+        items = respuesta.json()
+
+        cotizaciones: List[CotizacionDolar] = []
+        for item in items:
+            nombre = item["nombre"].strip()
+            tipos = self._repo_tipo.leer_todos()
+            tipo = next(
+                (t for t in tipos if t.nombre.lower() == nombre.lower()),
+                None,
+            )
+            if tipo is None:
+                nuevo_id = max((t.id for t in tipos), default=0) + 1
+                tipo = self._repo_tipo.crear(TipoCotizacion(nuevo_id, nombre))
+
+            fecha = date.fromisoformat(item["fechaActualizacion"][:10])
+            valor = float(item["venta"])
+
+            existente = self._repo.leer_por_tipo_y_fecha(tipo.id, fecha)
+            if existente is not None:
+                existente.valor = valor
+                cotizacion = self._repo.actualizar(existente)
+            else:
+                cotizacion = self._repo.crear(
+                    CotizacionDolar(tipo.id, fecha, valor)
+                )
+
+            cotizaciones.append(cotizacion)
+
+        return cotizaciones
+
     def actualizar(
-        self, tipo_id: int, fecha: datetime.date, valor: float
+        self, tipo_id: int, fecha: date, valor: float
     ) -> CotizacionDolar:
         """Actualiza el valor de una cotización existente.
 
         Args:
             tipo_id (int): ID del tipo de cotización.
-            fecha (datetime.date): Fecha de la cotización a modificar.
+            fecha (date): Fecha de la cotización a modificar.
             valor (float): Nuevo valor de la cotización.
 
         Returns:
@@ -830,12 +888,12 @@ class ServicioCotizacionDolar:
         cotizacion.valor = valor
         return self._repo.actualizar(cotizacion)
 
-    def eliminar(self, tipo_id: int, fecha: datetime.date) -> bool:
+    def eliminar(self, tipo_id: int, fecha: date) -> bool:
         """Elimina una cotización por tipo y fecha.
 
         Args:
             tipo_id (int): ID del tipo de cotización.
-            fecha (datetime.date): Fecha de la cotización a eliminar.
+            fecha (date): Fecha de la cotización a eliminar.
 
         Returns:
             bool: True si fue eliminada, False si no existía.

@@ -1,11 +1,15 @@
 ## Sprint 2
+[Ejercicio 07]
+- Configuración de API_URL en archivo .env para consulta de cotizaciones del dólar.
+- Implementación de obtener_cotizaciones() en ServicioCotizacionDolar con carga de variables vía python-dotenv, sincronización de tipos de cotización y alta/actualización de cotizaciones en el repositorio.
+
 [Ejercicio 06]
--Adaptación de la clase Servicios a los constructores actuales de los servicios.
--Migracion de base de datos a SQL
--Corrección de errores
+- Adaptación de la clase Servicios a los constructores actuales de los servicios.
+- Migracion de base de datos a SQL
+- Corrección de errores
 
 [Ejercicio 05]
--Migración de los datos de los CSV a la base de datos y generación de  SQL
+- Migración de los datos de los CSV a la base de datos y generación de  SQL
 
 [Ejercicio 04]
 - Creación de las tablas del sistema con sus tipos de datos y relaciones
