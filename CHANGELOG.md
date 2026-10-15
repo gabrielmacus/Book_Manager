@@ -1,4 +1,7 @@
 ## Sprint 2
+[Ejercicio 05]
+-Migración de los datos de los CSV a la base de datos y generación de  SQL
+
 [Ejercicio 04]
 - Creación de las tablas del sistema con sus tipos de datos y relaciones
 - 
