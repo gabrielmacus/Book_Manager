@@ -1,7 +1,7 @@
 from book_manager.database.connection import ConexionDB
-from book_manager.migrations.migrations import migrar_datos
+from book_manager.migrations.migrations import cargar_desde_sql
 from book_manager.models.models import crear_tablas
-from book_manager.preload_data.preload_data import CSV_DIR, generar_csvs
+from book_manager.preload_data.preload_data import CSV_DIR
 from book_manager.repositories.repositories import (
     RepositorioCotizacionDolar,
     RepositorioEditorial,
@@ -30,15 +30,14 @@ def main(import_default_data: bool = False) -> None:
     """Punto de entrada principal del sistema Book Manager.
 
     Args:
-        import_default_data (bool): Si es True, genera los archivos CSV de
-            ejemplo y migra sus datos a la base de datos antes de iniciar.
+        import_default_data (bool): Si es True, carga en la base de datos
+            los datos de ejemplo desde los archivos sql antes de iniciar.
     """
     conexion = ConexionDB()
     crear_tablas(conexion)
 
     if import_default_data:
-        generar_csvs(sobrescribir=True)
-        migrar_datos(str(CSV_DIR), str(CSV_DIR.parent / "sql"))
+        cargar_desde_sql(str(CSV_DIR.parent / "sql"))
 
     repo_genero = RepositorioGenero(conexion)
     repo_editorial = RepositorioEditorial(conexion)

@@ -118,3 +118,42 @@ def migrar_datos(carpeta_csvs: str, carpeta_sqls: str) -> None:
                 )
     finally:
         conexion.cerrar()
+
+
+def cargar_desde_sql(carpeta_sqls: str) -> None:
+    """Carga en la base de datos los datos de los archivos sql.
+
+    Crea las tablas si no existen, borra los datos previos y ejecuta los
+    archivos de la carpeta en orden alfabético (01_generos.sql,
+    02_editoriales.sql, ...), todo dentro de una única transacción.
+
+    Args:
+        carpeta_sqls (str): Carpeta donde se encuentran los archivos sql
+            con las sentencias de inserción (una por línea).
+
+    Raises:
+        FileNotFoundError: Si la carpeta no contiene archivos sql.
+    """
+    archivos = sorted(Path(carpeta_sqls).glob("*.sql"))
+    if not archivos:
+        raise FileNotFoundError(f"No hay archivos .sql en {carpeta_sqls}.")
+
+    # Modelos en orden inverso de dependencias, para borrar sin conflictos.
+    modelos = [
+        CotizacionDolarModel, StockModel, PrecioModel, LibroModel,
+        TipoCotizacionModel, MonedaModel, EditorialModel, GeneroModel,
+    ]
+    conexion = ConexionDB()
+    try:
+        crear_tablas(conexion)
+        with conexion.transaccion() as sesion:
+            for modelo in modelos:
+                sesion.execute(delete(modelo))
+            for archivo in archivos:
+                lineas = archivo.read_text(encoding="utf-8").splitlines()
+                for sentencia in lineas:
+                    if sentencia.strip():
+                        # Se ejecuta tal cual, sin interpretar parámetros.
+                        sesion.connection().exec_driver_sql(sentencia)
+    finally:
+        conexion.cerrar()

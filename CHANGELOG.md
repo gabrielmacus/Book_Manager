@@ -1,5 +1,9 @@
 ## Sprint 3
 
+[Ejercicio 02]
+- Función cargar_desde_sql en migrations.py: crea las tablas, borra los datos previos y ejecuta en orden los archivos .sql de migrations/sql dentro de una única transacción.
+- main(import_default_data=True) carga los datos de ejemplo desde los archivos .sql.
+
 [Ejercicio 01]
 - Creación de la rama Sprint_3 a partir de Sprint_2.
 - Nueva estructura de directorios: scraper (proyecto Scrapy con scrapy.cfg, settings, items, pipelines y spiders) y reportes.
