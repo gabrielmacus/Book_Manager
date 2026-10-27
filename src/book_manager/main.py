@@ -3,14 +3,14 @@ from book_manager.migrations.migrations import migrar_datos
 from book_manager.models.models import crear_tablas
 from book_manager.preload_data.preload_data import CSV_DIR, generar_csvs
 from book_manager.repositories.repositories import (
-    RepositorioCotizacionDolarDB,
-    RepositorioEditorialDB,
-    RepositorioGeneroDB,
-    RepositorioLibroDB,
-    RepositorioMonedaDB,
-    RepositorioPrecioDB,
-    RepositorioStockDB,
-    RepositorioTipoCotizacionDB,
+    RepositorioCotizacionDolar,
+    RepositorioEditorial,
+    RepositorioGenero,
+    RepositorioLibro,
+    RepositorioMoneda,
+    RepositorioPrecio,
+    RepositorioStock,
+    RepositorioTipoCotizacion,
 )
 from book_manager.services.services import (
     ServicioCotizacionDolar,
@@ -40,14 +40,14 @@ def main(import_default_data: bool = False) -> None:
         generar_csvs(sobrescribir=True)
         migrar_datos(str(CSV_DIR), str(CSV_DIR.parent / "sql"))
 
-    repo_genero = RepositorioGeneroDB(conexion)
-    repo_editorial = RepositorioEditorialDB(conexion)
-    repo_moneda = RepositorioMonedaDB(conexion)
-    repo_tipo = RepositorioTipoCotizacionDB(conexion)
-    repo_libro = RepositorioLibroDB(conexion)
-    repo_precio = RepositorioPrecioDB(conexion)
-    repo_stock = RepositorioStockDB(conexion)
-    repo_cotizacion = RepositorioCotizacionDolarDB(conexion)
+    repo_genero = RepositorioGenero(conexion)
+    repo_editorial = RepositorioEditorial(conexion)
+    repo_moneda = RepositorioMoneda(conexion)
+    repo_tipo = RepositorioTipoCotizacion(conexion)
+    repo_libro = RepositorioLibro(conexion)
+    repo_precio = RepositorioPrecio(conexion)
+    repo_stock = RepositorioStock(conexion)
+    repo_cotizacion = RepositorioCotizacionDolar(conexion)
 
     servicios = Servicios(
         generos=ServicioGenero(repo_genero, repo_libro),

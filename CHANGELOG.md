@@ -1,3 +1,13 @@
+## Sprint 3
+
+[Ejercicio 01]
+- Creación de la rama Sprint_3 a partir de Sprint_2.
+- Nueva estructura de directorios: scraper (proyecto Scrapy con scrapy.cfg, settings, items, pipelines y spiders) y reportes.
+- Dependencias en requirements.txt: scrapy, pandas y openpyxl.
+- Los repositorios de base de datos pasan a llamarse RepositorioGenero, RepositorioLibro, etc. (sin el sufijo DB).
+- .gitignore: se ignoran los reportes Excel generados (*.xlsx).
+- README actualizado al Sprint 3.
+
 ## Sprint 2
 
 [Ejercicio 08]

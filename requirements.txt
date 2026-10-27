@@ -3,3 +3,6 @@ psycopg2-binary
 psycopg[binary]
 python-dotenv
 requests
+scrapy
+pandas
+openpyxl

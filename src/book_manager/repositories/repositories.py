@@ -597,7 +597,7 @@ class _RepositorioDBBase(IRepositorio[T], Generic[T, M]):
             ) from e
 
 
-class RepositorioGeneroDB(_RepositorioDBBase[Genero, GeneroModel]):
+class RepositorioGenero(_RepositorioDBBase[Genero, GeneroModel]):
     """Repositorio de base de datos para Genero."""
 
     _modelo = GeneroModel
@@ -614,7 +614,7 @@ class RepositorioGeneroDB(_RepositorioDBBase[Genero, GeneroModel]):
         modelo.nombre = entidad.nombre
 
 
-class RepositorioEditorialDB(_RepositorioDBBase[Editorial, EditorialModel]):
+class RepositorioEditorial(_RepositorioDBBase[Editorial, EditorialModel]):
     """Repositorio de base de datos para Editorial."""
 
     _modelo = EditorialModel
@@ -631,7 +631,7 @@ class RepositorioEditorialDB(_RepositorioDBBase[Editorial, EditorialModel]):
         modelo.nombre = entidad.nombre
 
 
-class RepositorioMonedaDB(_RepositorioDBBase[Moneda, MonedaModel]):
+class RepositorioMoneda(_RepositorioDBBase[Moneda, MonedaModel]):
     """Repositorio de base de datos para Moneda."""
 
     _modelo = MonedaModel
@@ -651,7 +651,7 @@ class RepositorioMonedaDB(_RepositorioDBBase[Moneda, MonedaModel]):
         modelo.nombre = entidad.nombre
 
 
-class RepositorioTipoCotizacionDB(
+class RepositorioTipoCotizacion(
     _RepositorioDBBase[TipoCotizacion, TipoCotizacionModel]
 ):
     """Repositorio de base de datos para TipoCotizacion."""
@@ -670,7 +670,7 @@ class RepositorioTipoCotizacionDB(
         modelo.nombre = entidad.nombre
 
 
-class RepositorioLibroDB(_RepositorioDBBase[Libro, LibroModel]):
+class RepositorioLibro(_RepositorioDBBase[Libro, LibroModel]):
     """Repositorio de base de datos para Libro."""
 
     _modelo = LibroModel
@@ -705,7 +705,7 @@ class RepositorioLibroDB(_RepositorioDBBase[Libro, LibroModel]):
         modelo.genero_id = entidad.genero_id
 
 
-class RepositorioPrecioDB(_RepositorioDBBase[Precio, PrecioModel]):
+class RepositorioPrecio(_RepositorioDBBase[Precio, PrecioModel]):
     """Repositorio de base de datos para Precio."""
 
     _modelo = PrecioModel
@@ -734,7 +734,7 @@ class RepositorioPrecioDB(_RepositorioDBBase[Precio, PrecioModel]):
         modelo.valor = entidad.valor
 
 
-class RepositorioStockDB(IRepositorioStock):
+class RepositorioStock(IRepositorioStock):
     """Repositorio de base de datos para Stock."""
 
     def __init__(self, conexion: ConexionDB) -> None:
@@ -855,7 +855,7 @@ class RepositorioStockDB(IRepositorioStock):
             ) from e
 
 
-class RepositorioCotizacionDolarDB(IRepositorioCotizacionDolar):
+class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
     """Repositorio de base de datos para CotizacionDolar."""
 
     def __init__(self, conexion: ConexionDB) -> None:
