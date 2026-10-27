@@ -12,6 +12,7 @@ from book_manager.models.models import (
     LibroModel,
     MonedaModel,
     PrecioModel,
+    PrecioWebModel,
     StockModel,
     TipoCotizacionModel,
     crear_tablas,
@@ -104,7 +105,8 @@ def migrar_datos(carpeta_csvs: str, carpeta_sqls: str) -> None:
         crear_tablas(conexion)
         with conexion.transaccion() as sesion:
             # Se borra en orden inverso para poder volver a migrar sin
-            # duplicar datos.
+            # duplicar datos (los precios web dependen de los libros).
+            sesion.execute(delete(PrecioWebModel))
             for _, modelo, _ in reversed(tablas):
                 sesion.execute(delete(modelo))
 
@@ -140,8 +142,9 @@ def cargar_desde_sql(carpeta_sqls: str) -> None:
 
     # Modelos en orden inverso de dependencias, para borrar sin conflictos.
     modelos = [
-        CotizacionDolarModel, StockModel, PrecioModel, LibroModel,
-        TipoCotizacionModel, MonedaModel, EditorialModel, GeneroModel,
+        PrecioWebModel, CotizacionDolarModel, StockModel, PrecioModel,
+        LibroModel, TipoCotizacionModel, MonedaModel, EditorialModel,
+        GeneroModel,
     ]
     conexion = ConexionDB()
     try:

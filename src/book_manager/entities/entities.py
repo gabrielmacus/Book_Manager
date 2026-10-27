@@ -1,4 +1,5 @@
-from datetime import date
+from datetime import date, datetime
+from typing import Optional
 
 
 def _validar_texto(valor: str, campo: str) -> str:
@@ -266,3 +267,121 @@ class CotizacionDolar:
     @valor.setter
     def valor(self, valor: float) -> None:
         self._valor = _validar_valor(valor, "El valor")
+
+
+class PrecioWeb:
+    """Precio de un libro obtenido de la web de un competidor (Cúspide)."""
+
+    def __init__(
+        self,
+        libro_id: int,
+        posicion: int,
+        titulo: str,
+        url: str,
+        precio: float,
+        fecha_extraccion: datetime,
+        precio_usd: Optional[float] = None,
+        isbn: Optional[str] = None,
+        imagen_url: Optional[str] = None,
+        formas_pago: str = "",
+        descripcion: str = "",
+        especificaciones: str = "",
+        id: Optional[int] = None,
+    ) -> None:
+        self.libro_id = libro_id
+        self.posicion = posicion
+        self.titulo = titulo
+        self.url = url
+        self.precio = precio
+        self.fecha_extraccion = fecha_extraccion
+        self.precio_usd = precio_usd
+        self._isbn = isbn
+        self._imagen_url = imagen_url
+        self._formas_pago = formas_pago
+        self._descripcion = descripcion
+        self._especificaciones = especificaciones
+        self._id = id
+
+    @property
+    def id(self) -> Optional[int]:
+        return self._id
+
+    @property
+    def libro_id(self) -> int:
+        return self._libro_id
+
+    @libro_id.setter
+    def libro_id(self, valor: int) -> None:
+        self._libro_id = _validar_entero(valor, "El id de libro", 1)
+
+    @property
+    def posicion(self) -> int:
+        return self._posicion
+
+    @posicion.setter
+    def posicion(self, valor: int) -> None:
+        self._posicion = _validar_entero(valor, "La posición", 1)
+
+    @property
+    def titulo(self) -> str:
+        return self._titulo
+
+    @titulo.setter
+    def titulo(self, valor: str) -> None:
+        self._titulo = _validar_texto(valor, "El título")
+
+    @property
+    def url(self) -> str:
+        return self._url
+
+    @url.setter
+    def url(self, valor: str) -> None:
+        self._url = _validar_texto(valor, "La URL")
+
+    @property
+    def precio(self) -> float:
+        return self._precio
+
+    @precio.setter
+    def precio(self, valor: float) -> None:
+        self._precio = _validar_valor(valor, "El precio")
+
+    @property
+    def precio_usd(self) -> Optional[float]:
+        return self._precio_usd
+
+    @precio_usd.setter
+    def precio_usd(self, valor: Optional[float]) -> None:
+        self._precio_usd = (
+            None if valor is None else _validar_valor(valor, "El precio USD")
+        )
+
+    @property
+    def fecha_extraccion(self) -> datetime:
+        return self._fecha_extraccion
+
+    @fecha_extraccion.setter
+    def fecha_extraccion(self, valor: datetime) -> None:
+        if not isinstance(valor, datetime):
+            raise ValueError("La fecha de extracción debe ser datetime.")
+        self._fecha_extraccion = valor
+
+    @property
+    def isbn(self) -> Optional[str]:
+        return self._isbn
+
+    @property
+    def imagen_url(self) -> Optional[str]:
+        return self._imagen_url
+
+    @property
+    def formas_pago(self) -> str:
+        return self._formas_pago
+
+    @property
+    def descripcion(self) -> str:
+        return self._descripcion
+
+    @property
+    def especificaciones(self) -> str:
+        return self._especificaciones

@@ -1,12 +1,14 @@
 """Modelos SQLAlchemy con las tablas del sistema y sus relaciones."""
-from datetime import date
+from datetime import date, datetime
 
 from sqlalchemy import (
     Date,
+    DateTime,
     Float,
     ForeignKey,
     Integer,
     String,
+    Text,
     UniqueConstraint,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -105,6 +107,9 @@ class LibroModel(Base):
     stock: Mapped["StockModel | None"] = relationship(
         back_populates="libro", uselist=False
     )
+    precios_web: Mapped[list["PrecioWebModel"]] = relationship(
+        back_populates="libro"
+    )
 
 
 class PrecioModel(Base):
@@ -151,6 +156,30 @@ class CotizacionDolarModel(Base):
     tipo: Mapped["TipoCotizacionModel"] = relationship(
         back_populates="cotizaciones"
     )
+
+
+class PrecioWebModel(Base):
+    """Tabla de precios de libros obtenidos por scraping de Cúspide."""
+
+    __tablename__ = "precios_web"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    libro_id: Mapped[int] = mapped_column(ForeignKey("libros.id"))
+    posicion: Mapped[int] = mapped_column(Integer)
+    titulo: Mapped[str] = mapped_column(String(300))
+    url: Mapped[str] = mapped_column(String(500))
+    isbn: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    precio: Mapped[float] = mapped_column(Float)
+    precio_usd: Mapped[float | None] = mapped_column(Float, nullable=True)
+    imagen_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True
+    )
+    formas_pago: Mapped[str] = mapped_column(Text, default="")
+    descripcion: Mapped[str] = mapped_column(Text, default="")
+    especificaciones: Mapped[str] = mapped_column(Text, default="")
+    fecha_extraccion: Mapped[datetime] = mapped_column(DateTime)
+
+    libro: Mapped["LibroModel"] = relationship(back_populates="precios_web")
 
 
 def crear_tablas(conexion: ConexionDB) -> None:

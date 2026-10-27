@@ -17,6 +17,7 @@ from book_manager.entities.entities import (
     Libro,
     Moneda,
     Precio,
+    PrecioWeb,
     Stock,
     TipoCotizacion,
 )
@@ -27,6 +28,7 @@ from book_manager.models.models import (
     LibroModel,
     MonedaModel,
     PrecioModel,
+    PrecioWebModel,
     StockModel,
     TipoCotizacionModel,
 )
@@ -1020,3 +1022,76 @@ class RepositorioCotizacionDolar(IRepositorioCotizacionDolar):
             raise ValueError(
                 "No se puede eliminar: tiene registros asociados."
             ) from e
+
+
+class RepositorioPrecioWeb:
+    """Repositorio de base de datos para los precios obtenidos de la web."""
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Inicializa el repositorio con la conexión a la base de datos.
+
+        Args:
+            conexion (ConexionDB): Conexión a la base de datos.
+        """
+        self._conexion = conexion
+
+    def _a_entidad(self, modelo: PrecioWebModel) -> PrecioWeb:
+        return PrecioWeb(
+            modelo.libro_id,
+            modelo.posicion,
+            modelo.titulo,
+            modelo.url,
+            modelo.precio,
+            modelo.fecha_extraccion,
+            precio_usd=modelo.precio_usd,
+            isbn=modelo.isbn,
+            imagen_url=modelo.imagen_url,
+            formas_pago=modelo.formas_pago,
+            descripcion=modelo.descripcion,
+            especificaciones=modelo.especificaciones,
+            id=modelo.id,
+        )
+
+    def crear(self, precio_web: PrecioWeb) -> PrecioWeb:
+        """Registra un precio obtenido de la web.
+
+        Args:
+            precio_web (PrecioWeb): El precio a registrar.
+
+        Returns:
+            PrecioWeb: El precio registrado, con el id asignado por la base.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelo = PrecioWebModel(
+                libro_id=precio_web.libro_id,
+                posicion=precio_web.posicion,
+                titulo=precio_web.titulo,
+                url=precio_web.url,
+                isbn=precio_web.isbn,
+                precio=precio_web.precio,
+                precio_usd=precio_web.precio_usd,
+                imagen_url=precio_web.imagen_url,
+                formas_pago=precio_web.formas_pago,
+                descripcion=precio_web.descripcion,
+                especificaciones=precio_web.especificaciones,
+                fecha_extraccion=precio_web.fecha_extraccion,
+            )
+            sesion.add(modelo)
+            sesion.flush()
+            return self._a_entidad(modelo)
+
+    def leer_todos(self) -> List[PrecioWeb]:
+        """Lee todos los precios web ordenados por fecha, libro y posición.
+
+        Returns:
+            List[PrecioWeb]: Lista con todos los precios web.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelos = sesion.scalars(
+                select(PrecioWebModel).order_by(
+                    PrecioWebModel.fecha_extraccion,
+                    PrecioWebModel.libro_id,
+                    PrecioWebModel.posicion,
+                )
+            ).all()
+            return [self._a_entidad(m) for m in modelos]

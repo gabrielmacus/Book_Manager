@@ -1,5 +1,14 @@
 ## Sprint 3
 
+[Ejercicio 03]
+- Scraper CuspideSpider con Scrapy: busca en Cúspide cada título del catálogo y recorre los primeros 10 resultados de cada búsqueda.
+- De cada ficha obtiene precio en pesos y en dólares, URL de la imagen, formas de pago, descripción (sinopsis) y especificaciones, además del ISBN y la fecha de extracción.
+- Item LibroWebItem y loader LibroWebLoader, que limpian espacios, convierten los precios ('$ 48.500,00' a 48500.0) y unen las listas.
+- Pipelines: ValidarLibroPipeline descarta fichas sin título, URL o precio y GuardarPrecioWebPipeline guarda cada ficha en la base.
+- Nueva entidad PrecioWeb, tabla precios_web (PrecioWebModel) y RepositorioPrecioWeb.
+- La carga y la migración de datos borran primero los precios web, que dependen de los libros.
+- Configuración del proyecto (settings.py): respeta robots.txt y espacia los pedidos al sitio. Se requiere scrapy>=2.13.
+
 [Ejercicio 02]
 - Función cargar_desde_sql en migrations.py: crea las tablas, borra los datos previos y ejecuta en orden los archivos .sql de migrations/sql dentro de una única transacción.
 - main(import_default_data=True) carga los datos de ejemplo desde los archivos .sql.
