@@ -10,6 +10,7 @@ from typing import Dict, List, Optional
 import unicodedata
 
 from dotenv import load_dotenv
+from pandas import DataFrame
 import requests
 
 from book_manager.entities.entities import (
@@ -288,6 +289,40 @@ class ServicioPrecioWeb:
             )
         self.ejecutar_scraper()
         return self.generar_alertas(umbral_porcentual)
+
+    def generar_reporte_excel(self) -> Path:
+        """Genera un archivo Excel con la comparación de precios más reciente.
+
+        Returns:
+            Path: Ruta del archivo Excel generado.
+
+        Raises:
+            ValueError: Si no hay datos de scraping para comparar.
+        """
+        comparaciones = self.comparar_ultima_extraccion()
+        if not comparaciones:
+            raise ValueError(
+                "No hay datos de scraping para comparar. "
+                "Ejecute primero el scraping."
+            )
+
+        datos = {
+            "Libro": [c.libro for c in comparaciones],
+            "Precio interno": [c.precio_interno for c in comparaciones],
+            "Precio web": [c.precio_web for c in comparaciones],
+            "Diferencia": [c.diferencia for c in comparaciones],
+            "Fecha de extracción": [
+                c.fecha_extraccion.replace(microsecond=0)
+                for c in comparaciones
+            ],
+        }
+        df = DataFrame(datos)
+        REPORTES_DIR.mkdir(parents=True, exist_ok=True)
+        ruta = REPORTES_DIR / (
+            f"reporte_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
+        )
+        df.to_excel(ruta, index=False, sheet_name="Comparación")
+        return ruta
 
 
 class ServicioGenero:

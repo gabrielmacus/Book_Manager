@@ -1,5 +1,8 @@
 ## Sprint 3
 
+[Ejercicio 05]
+- ServicioPrecioWeb.generar_reporte_excel: genera reportes/reporte_<fecha_hora>.xlsx con pandas, con las columnas Libro, Precio interno, Precio web, Diferencia y Fecha de extracción de la última ejecución del scraper.
+
 [Ejercicio 04]
 - ServicioPrecioWeb compara precios internos en pesos con la última extracción web, convirtiendo precios en USD con el dólar oficial.
 - Elige el resultado web por ISBN o por similitud de título y genera reportes/alertas_<fecha_hora>.csv según el umbral indicado.
