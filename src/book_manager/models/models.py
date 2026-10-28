@@ -182,6 +182,17 @@ class PrecioWebModel(Base):
     libro: Mapped["LibroModel"] = relationship(back_populates="precios_web")
 
 
+class AuditoriaModel(Base):
+    """Tabla de auditoría de operaciones del sistema."""
+
+    __tablename__ = "auditoria"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    accion: Mapped[str] = mapped_column(String(100), nullable=False)
+    fecha: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    detalles: Mapped[str] = mapped_column(Text, default="")
+
+
 def crear_tablas(conexion: ConexionDB) -> None:
     """Crea en la base todas las tablas que todavía no existan.
 

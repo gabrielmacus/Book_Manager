@@ -3,6 +3,7 @@ from book_manager.migrations.migrations import cargar_desde_sql
 from book_manager.models.models import crear_tablas
 from book_manager.preload_data.preload_data import CSV_DIR
 from book_manager.repositories.repositories import (
+    RepositorioAuditoria,
     RepositorioCotizacionDolar,
     RepositorioEditorial,
     RepositorioGenero,
@@ -14,6 +15,7 @@ from book_manager.repositories.repositories import (
     RepositorioTipoCotizacion,
 )
 from book_manager.services.services import (
+    ServicioAuditoria,
     ServicioCotizacionDolar,
     ServicioEditorial,
     ServicioGenero,
@@ -24,6 +26,7 @@ from book_manager.services.services import (
     ServicioStock,
     ServicioTipoCotizacion,
     Servicios,
+    configurar_auditoria,
 )
 from book_manager.ui.console import ConsoleUI
 
@@ -49,6 +52,10 @@ def main(import_default_data: bool = False) -> None:
     repo_precio = RepositorioPrecio(conexion)
     repo_stock = RepositorioStock(conexion)
     repo_cotizacion = RepositorioCotizacionDolar(conexion)
+    repo_auditoria = RepositorioAuditoria(conexion)
+
+    servicio_auditoria = ServicioAuditoria(repo_auditoria)
+    configurar_auditoria(servicio_auditoria)
 
     servicios = Servicios(
         generos=ServicioGenero(repo_genero, repo_libro),
@@ -69,6 +76,7 @@ def main(import_default_data: bool = False) -> None:
             repo_cotizacion,
             repo_tipo,
         ),
+        auditoria=servicio_auditoria,
     )
 
     ConsoleUI(servicios).run()

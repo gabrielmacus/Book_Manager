@@ -385,3 +385,46 @@ class PrecioWeb:
     @property
     def especificaciones(self) -> str:
         return self._especificaciones
+
+
+class Auditoria:
+    """Registro de auditoría de una operación del sistema."""
+
+    def __init__(
+        self,
+        accion: str,
+        fecha: datetime,
+        detalles: str = "",
+        id: Optional[int] = None,
+    ) -> None:
+        self.accion = accion
+        self.fecha = fecha
+        self._detalles = detalles
+        self._id = id
+
+    @property
+    def id(self) -> Optional[int]:
+        return self._id
+
+    @property
+    def accion(self) -> str:
+        return self._accion
+
+    @accion.setter
+    def accion(self, valor: str) -> None:
+        self._accion = _validar_texto(valor, "La acción")
+
+    @property
+    def fecha(self) -> datetime:
+        return self._fecha
+
+    @fecha.setter
+    def fecha(self, valor: datetime) -> None:
+        if not isinstance(valor, datetime):
+            raise ValueError("La fecha debe ser datetime.")
+        self._fecha = valor
+
+    @property
+    def detalles(self) -> str:
+        return self._detalles
+

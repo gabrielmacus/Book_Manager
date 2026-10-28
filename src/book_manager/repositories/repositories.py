@@ -10,6 +10,7 @@ from sqlalchemy.exc import IntegrityError
 
 from book_manager.database.connection import ConexionDB
 from book_manager.entities.entities import (
+    Auditoria,
     CotizacionDolar,
     Editorial,
     EntidadBase,
@@ -22,6 +23,7 @@ from book_manager.entities.entities import (
     TipoCotizacion,
 )
 from book_manager.models.models import (
+    AuditoriaModel,
     CotizacionDolarModel,
     EditorialModel,
     GeneroModel,
@@ -1115,3 +1117,74 @@ class RepositorioPrecioWeb:
                 .order_by(PrecioWebModel.libro_id, PrecioWebModel.posicion)
             ).all()
             return [self._a_entidad(modelo) for modelo in modelos]
+
+
+class RepositorioAuditoria:
+    """Repositorio de base de datos para los registros de auditoría."""
+
+    def __init__(self, conexion: ConexionDB) -> None:
+        """Inicializa el repositorio con la conexión a la base de datos.
+
+        Args:
+            conexion (ConexionDB): Conexión a la base de datos.
+        """
+        self._conexion = conexion
+
+    def _a_entidad(self, modelo: AuditoriaModel) -> Auditoria:
+        return Auditoria(
+            modelo.accion,
+            modelo.fecha,
+            modelo.detalles,
+            id=modelo.id,
+        )
+
+    def crear(self, auditoria: Auditoria) -> Auditoria:
+        """Inserta un registro de auditoría en la base de datos.
+
+        Args:
+            auditoria (Auditoria): La entidad auditoría a registrar.
+
+        Returns:
+            Auditoria: La entidad con el id asignado por la base de datos.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelo = AuditoriaModel(
+                accion=auditoria.accion,
+                fecha=auditoria.fecha,
+                detalles=auditoria.detalles,
+            )
+            sesion.add(modelo)
+            sesion.flush()
+            return self._a_entidad(modelo)
+
+    def leer_por_id(self, id: int) -> Optional[Auditoria]:
+        """Lee un registro de auditoría por su id.
+
+        Args:
+            id (int): El ID de la auditoría.
+
+        Returns:
+            Optional[Auditoria]: La auditoría si existe, None en caso contrario.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelo = sesion.get(AuditoriaModel, id)
+            if modelo is None:
+                return None
+            return self._a_entidad(modelo)
+
+    def leer_todos(self) -> List[Auditoria]:
+        """Lee todos los registros de auditoría ordenados por fecha y id descendentes.
+
+        Returns:
+            List[Auditoria]: Lista de registros de auditoría ordenados de más
+                reciente a más viejo.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelos = sesion.scalars(
+                select(AuditoriaModel).order_by(
+                    AuditoriaModel.fecha.desc(),
+                    AuditoriaModel.id.desc(),
+                )
+            ).all()
+            return [self._a_entidad(modelo) for modelo in modelos]
+
