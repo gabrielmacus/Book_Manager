@@ -14,6 +14,7 @@ class ValidarLibroPipeline:
     """Descarta las fichas sin título, URL o precio."""
 
     def process_item(self, item: Any, spider: Optional[Any] = None) -> Any:
+        """Descarta el item si le falta título, URL o precio."""
         adapter = ItemAdapter(item)
         for campo in ("titulo", "url", "precio"):
             if not adapter.get(campo):
@@ -25,14 +26,17 @@ class GuardarPrecioWebPipeline:
     """Guarda cada ficha válida en la tabla precios_web."""
 
     def open_spider(self, spider: Optional[Any] = None) -> None:
+        """Abre la conexión a la base al iniciar el spider."""
         self._conexion = ConexionDB()
         crear_tablas(self._conexion)  # por si precios_web aún no existe
         self._repositorio = RepositorioPrecioWeb(self._conexion)
 
     def close_spider(self, spider: Optional[Any] = None) -> None:
+        """Cierra la conexión a la base al terminar el spider."""
         self._conexion.cerrar()
 
     def process_item(self, item: Any, spider: Optional[Any] = None) -> Any:
+        """Guarda el item como un registro de PrecioWeb."""
         adapter = ItemAdapter(item)
         self._repositorio.crear(
             PrecioWeb(

@@ -1,4 +1,5 @@
 """Interfaz de consola de Book Manager."""
+import base64
 import csv
 import datetime
 import os
@@ -7,7 +8,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 from requests import RequestException
 
-from book_manager.services.services import Servicios
+from book_manager.services.services import Servicios, a_hora_local, auditar
 
 EXPORTS_DIR = Path(__file__).resolve().parent.parent / "exports"
 
@@ -23,6 +24,15 @@ class ConsoleUI:
                 aplicación.
         """
         self.servicios = servicios
+        self._archivos_generados: List[Path] = []
+
+    def _en_notebook(self) -> bool:
+        """Indica si el programa se ejecuta dentro de un notebook (Colab)."""
+        try:
+            from IPython import get_ipython
+        except ImportError:
+            return False
+        return hasattr(get_ipython(), "kernel")
 
     def _clear_screen(self) -> None:
         """Limpia la terminal; en notebooks solo imprime un separador.
@@ -30,13 +40,7 @@ class ConsoleUI:
         En Colab no se borra la salida para que quede registro de todas las
         operaciones realizadas y el cuadro de input se muestre siempre.
         """
-        try:
-            from IPython import get_ipython
-
-            en_notebook = hasattr(get_ipython(), "kernel")
-        except ImportError:
-            en_notebook = False
-        if en_notebook:
+        if self._en_notebook():
             print("\n" + "=" * 60)
         else:
             os.system("cls" if os.name == "nt" else "clear")
@@ -107,6 +111,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar géneros")
     def _listar_generos(self) -> None:
         self._display_list(
             "Listado de Géneros",
@@ -114,6 +119,7 @@ class ConsoleUI:
             lambda g: f"ID: {g.id} | Nombre: {g.nombre}",
         )
 
+    @auditar("Buscar género")
     def _buscar_genero(self) -> None:
         self._clear_screen()
         print("--- Buscar Género por ID ---")
@@ -190,6 +196,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar editoriales")
     def _listar_editoriales(self) -> None:
         self._display_list(
             "Listado de Editoriales",
@@ -197,6 +204,7 @@ class ConsoleUI:
             lambda e: f"ID: {e.id} | Nombre: {e.nombre}",
         )
 
+    @auditar("Buscar editorial")
     def _buscar_editorial(self) -> None:
         self._clear_screen()
         print("--- Buscar Editorial por ID ---")
@@ -285,6 +293,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar libros")
     def _listar_libros(self) -> None:
         self._display_list(
             "Listado de Libros",
@@ -297,6 +306,7 @@ class ConsoleUI:
             ),
         )
 
+    @auditar("Buscar libro")
     def _buscar_libro(self) -> None:
         self._clear_screen()
         print("--- Buscar Libro por ID ---")
@@ -388,6 +398,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar monedas")
     def _listar_monedas(self) -> None:
         self._display_list(
             "Listado de Monedas",
@@ -395,6 +406,7 @@ class ConsoleUI:
             lambda m: f"ID: {m.id} | Código: {m.codigo} | Nombre: {m.nombre}",
         )
 
+    @auditar("Buscar moneda")
     def _buscar_moneda(self) -> None:
         self._clear_screen()
         print("--- Buscar Moneda por ID ---")
@@ -478,6 +490,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar tipos de cotización")
     def _listar_tipos_cotizacion(self) -> None:
         self._display_list(
             "Listado de Tipos de Cotización",
@@ -485,6 +498,7 @@ class ConsoleUI:
             lambda t: f"ID: {t.id} | Nombre: {t.nombre}",
         )
 
+    @auditar("Buscar tipo de cotización")
     def _buscar_tipo_cotizacion(self) -> None:
         self._clear_screen()
         print("--- Buscar Tipo de Cotización por ID ---")
@@ -570,6 +584,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar precios")
     def _listar_precios(self) -> None:
         self._display_list(
             "Listado de Precios",
@@ -580,6 +595,7 @@ class ConsoleUI:
             ),
         )
 
+    @auditar("Buscar precio")
     def _buscar_precio(self) -> None:
         self._clear_screen()
         print("--- Buscar Precio por ID ---")
@@ -595,6 +611,7 @@ class ConsoleUI:
             print(f"No se encontró un precio con ID {id}.")
         self._pause()
 
+    @auditar("Listar precios por libro")
     def _listar_precios_por_libro(self) -> None:
         self._clear_screen()
         print("--- Listar Precios por Libro ---")
@@ -686,6 +703,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Listar stock")
     def _listar_stock(self) -> None:
         self._display_list(
             "Listado de Stock",
@@ -695,6 +713,7 @@ class ConsoleUI:
             ),
         )
 
+    @auditar("Buscar stock")
     def _buscar_stock(self) -> None:
         self._clear_screen()
         print("--- Buscar Stock por ID de Libro ---")
@@ -788,6 +807,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Consultar cotización")
     def _consultar_cotizacion(self) -> None:
         self._clear_screen()
         print("--- Consultar Cotización por Tipo y Fecha ---")
@@ -810,6 +830,7 @@ class ConsoleUI:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Ver histórico de cotizaciones")
     def _historico_cotizaciones(self) -> None:
         self._clear_screen()
         print("--- Histórico de Cotizaciones por Tipo ---")
@@ -823,6 +844,7 @@ class ConsoleUI:
             lambda c: f"Fecha: {c.fecha} | Valor: {c.valor}",
         )
 
+    @auditar("Ver última cotización")
     def _ultima_cotizacion(self) -> None:
         self._clear_screen()
         print("--- Última Cotización de un Tipo ---")
@@ -951,6 +973,7 @@ class ConsoleUI:
             return f"{valores['ARS'] / dolar:.2f}"
         return "-"
 
+    @auditar("Ver lista de precios bimonetaria")
     def _lista_bimonetaria(self) -> None:
         self._clear_screen()
         print("--- Lista de Precios Bimonetaria ---")
@@ -984,7 +1007,9 @@ class ConsoleUI:
             fila,
         )
 
+    @auditar("Exportar precios a CSV")
     def _exportar_precios_csv(self) -> None:
+        """Exporta a un CSV los precios de cada libro en todas las monedas."""
         self._clear_screen()
         print("--- Exportar Precios a CSV ---")
         codigos = [m.codigo for m in self.servicios.monedas.obtener_todos()]
@@ -1004,15 +1029,34 @@ class ConsoleUI:
         self._pause()
 
     def _ofrecer_descarga(self, ruta: Path) -> None:
-        """Ofrece la descarga del archivo en Colab o muestra la ruta local."""
-        try:
-            from google.colab import files
+        """Registra el archivo para ofrecer su descarga al salir (Colab).
 
-            files.download(str(ruta))
-        except ImportError:
-            print(f"Archivo disponible en: {ruta}")
+        En Colab, mostrar un enlace o usar files.download mientras el menú
+        espera un input deja la consola trabada, por eso los enlaces se
+        muestran recién al salir del programa.
+        """
+        if self._en_notebook():
+            self._archivos_generados.append(ruta)
+            print("El enlace de descarga se muestra al salir (opción 0).")
+
+    def _mostrar_descargas(self) -> None:
+        """Muestra un enlace de descarga por cada archivo generado."""
+        if not self._archivos_generados:
+            return
+        from IPython.display import HTML, display
+
+        for ruta in self._archivos_generados:
+            contenido = base64.b64encode(ruta.read_bytes()).decode()
+            display(
+                HTML(
+                    f'<a download="{ruta.name}" href="data:application/'
+                    f'octet-stream;base64,{contenido}">'
+                    f"Descargar {ruta.name}</a>"
+                )
+            )
 
     def _ejecutar_scraping(self) -> None:
+        """Pide la diferencia, ejecuta el scraping y ofrece las alertas."""
         self._clear_screen()
         print("--- Ejecutar Scraping de Precios ---")
         umbral = self._get_input(
@@ -1024,27 +1068,32 @@ class ConsoleUI:
             with ruta.open(encoding="utf-8") as f:
                 alertas = max(0, len(f.readlines()) - 1)
             print(f"Alertas generadas: {alertas}")
+            print(f"Archivo de alertas: {ruta}")
             self._ofrecer_descarga(ruta)
         except (ValueError, RuntimeError) as e:
             print(f"Error: {e}")
         self._pause()
 
     def _generar_reporte(self) -> None:
+        """Genera el reporte Excel de comparación y ofrece su descarga."""
         self._clear_screen()
         print("--- Generar Reporte Excel ---")
         try:
             ruta = self.servicios.precios_web.generar_reporte_excel()
+            print(f"Reporte generado: {ruta}")
             self._ofrecer_descarga(ruta)
         except ValueError as e:
             print(f"Error: {e}")
         self._pause()
 
+    @auditar("Ver historial de auditoría")
     def _ver_auditoria(self) -> None:
+        """Muestra las últimas 50 operaciones registradas en la auditoría."""
         self._display_list(
             "Historial de Auditoría (últimos 50)",
             self.servicios.auditoria.obtener_historial(50),
             lambda a: (
-                f"{a.fecha:%Y-%m-%d %H:%M:%S} | {a.accion} | {a.detalles}"
+                f"{a_hora_local(a.fecha)} | {a.accion} | {a.detalles}"
             ),
         )
 
@@ -1099,6 +1148,7 @@ class ConsoleUI:
                 self._ver_auditoria()
             elif opcion == 0:
                 print("Saliendo del sistema...")
+                self._mostrar_descargas()
                 break
             else:
                 print("Opción inválida. Intente de nuevo.")

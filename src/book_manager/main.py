@@ -52,6 +52,7 @@ def main(import_default_data: bool = False) -> None:
     repo_precio = RepositorioPrecio(conexion)
     repo_stock = RepositorioStock(conexion)
     repo_cotizacion = RepositorioCotizacionDolar(conexion)
+    repo_precio_web = RepositorioPrecioWeb(conexion)
     repo_auditoria = RepositorioAuditoria(conexion)
 
     servicio_auditoria = ServicioAuditoria(repo_auditoria)
@@ -63,13 +64,18 @@ def main(import_default_data: bool = False) -> None:
         monedas=ServicioMoneda(repo_moneda, repo_precio),
         tipos=ServicioTipoCotizacion(repo_tipo, repo_cotizacion),
         libros=ServicioLibro(
-            repo_libro, repo_editorial, repo_genero, repo_precio, repo_stock
+            repo_libro,
+            repo_editorial,
+            repo_genero,
+            repo_precio,
+            repo_stock,
+            repo_precio_web,
         ),
         precios=ServicioPrecio(repo_precio, repo_libro, repo_moneda),
         stock=ServicioStock(repo_stock, repo_libro),
         cotizaciones=ServicioCotizacionDolar(repo_cotizacion, repo_tipo),
         precios_web=ServicioPrecioWeb(
-            RepositorioPrecioWeb(conexion),
+            repo_precio_web,
             repo_libro,
             repo_precio,
             repo_moneda,

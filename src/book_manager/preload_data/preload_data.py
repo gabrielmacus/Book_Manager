@@ -2,7 +2,8 @@
 
 Los archivos se escriben en book_manager/migrations/csv y son los mismos que
 leen y guardan los repositorios. Cada clase tiene al menos 10 registros. Los
-datos son de ejemplo (los ISBN son ilustrativos).
+ISBN son los de ediciones reales que vende Cúspide, para que el scraper pueda
+identificar cada libro (salvo Fundación, que Cúspide no vende suelto).
 """
 from datetime import date
 from pathlib import Path
@@ -56,18 +57,18 @@ _TIPOS = [
 
 # (isbn, título, autor, editorial_id, genero_id)
 _LIBROS = [
-    ("9789500000011", "Rayuela", "Julio Cortázar", 3, 1),
-    ("9789500000028", "El Aleph", "Jorge Luis Borges", 9, 1),
-    ("9789500000035", "Ficciones", "Jorge Luis Borges", 9, 1),
-    ("9789500000042", "Sobre héroes y tumbas", "Ernesto Sabato", 1, 1),
+    ("9789877382570", "Rayuela", "Julio Cortázar", 3, 1),
+    ("9789500755764", "El Aleph", "Jorge Luis Borges", 9, 1),
+    ("9789500755757", "Ficciones", "Jorge Luis Borges", 9, 1),
+    ("9786316691422", "Sobre héroes y tumbas", "Ernesto Sabato", 1, 1),
     ("9781492056355", "Fluent Python", "Luciano Ramalho", 7, 4),
     ("9780132350884", "Clean Code", "Robert C. Martin", 7, 4),
     ("9789500000073", "Fundación", "Isaac Asimov", 2, 6),
-    ("9789500000080", "Martín Fierro", "José Hernández", 10, 5),
-    ("9789500000097", "Sapiens", "Yuval Noah Harari", 2, 7),
-    ("9789500000103", "El Principito", "Antoine de Saint-Exupéry", 4, 3),
-    ("9789500000110", "Estudio en escarlata", "Arthur Conan Doyle", 5, 9),
-    ("9789500000127", "Las venas abiertas de América Latina",
+    ("9789505636433", "Martín Fierro", "José Hernández", 10, 5),
+    ("9788419399717", "Sapiens", "Yuval Noah Harari", 2, 7),
+    ("9789500444675", "El Principito", "Antoine de Saint-Exupéry", 4, 3),
+    ("9789500213059", "Estudio en escarlata", "Arthur Conan Doyle", 5, 9),
+    ("9789878010670", "Las venas abiertas de América Latina",
      "Eduardo Galeano", 6, 2),
 ]
 

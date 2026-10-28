@@ -1,5 +1,4 @@
 """Spider que obtiene de Cúspide los precios de los libros del catálogo."""
-from datetime import datetime
 from typing import Any, AsyncIterator, Iterator, List
 from urllib.parse import urlencode
 
@@ -11,6 +10,7 @@ from book_manager.entities.entities import Libro
 from book_manager.repositories.repositories import RepositorioLibro
 from book_manager.scraper.items import LibroWebItem
 from book_manager.scraper.loaders import LibroWebLoader
+from book_manager.services.services import ahora_utc
 
 
 class CuspideSpider(Spider):
@@ -26,9 +26,11 @@ class CuspideSpider(Spider):
     MAX_RESULTADOS = 10
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Inicializa el spider y fija la fecha de extracción."""
         super().__init__(*args, **kwargs)
-        # Todas las fichas de una ejecución comparten la fecha de extracción.
-        self.fecha_extraccion = datetime.now()
+        # Todas las fichas de una ejecución comparten la fecha de extracción,
+        # que se guarda en UTC.
+        self.fecha_extraccion = ahora_utc()
 
     def _libros(self) -> List[Libro]:
         """Retorna los libros del catálogo guardados en la base de datos."""
@@ -56,13 +58,19 @@ class CuspideSpider(Spider):
 
     def parse_busqueda(
         self, response: Response, libro_id: int
-    ) -> Iterator[Request]:
+    ) -> Iterator[Any]:
         """Sigue los primeros resultados de la búsqueda de un libro.
+
+        Si la búsqueda tiene un único resultado, Cúspide redirige
+        directamente a la ficha del libro y se extrae de ahí.
 
         Args:
             response (Response): Página de resultados de la búsqueda.
             libro_id (int): Id del libro del catálogo que se buscó.
         """
+        if response.css("h1.product-title"):
+            yield from self.parse_libro(response, libro_id, 1)
+            return
         enlaces = response.css(
             "div.products div.product-small.col .product-title a::attr(href)"
         ).getall()[: self.MAX_RESULTADOS]

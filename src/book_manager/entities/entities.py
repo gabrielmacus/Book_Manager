@@ -427,4 +427,3 @@ class Auditoria:
     @property
     def detalles(self) -> str:
         return self._detalles
-

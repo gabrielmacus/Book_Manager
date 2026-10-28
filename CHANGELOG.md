@@ -1,5 +1,17 @@
 ## Sprint 3
 
+[Correcciones]
+- Datos de ejemplo con los ISBN reales de las ediciones que vende Cúspide (preload_data y migrations/sql/05_libros.sql), para que la comparación encuentre el libro correcto.
+- Sin ISBN coincidente, la comparación solo acepta títulos casi idénticos (similitud mínima 0.9).
+- El scraping avisa con un error si el catálogo está vacío o si no obtuvo resultados, en lugar de generar alertas con datos de una ejecución anterior.
+- El scraper también toma la ficha cuando Cúspide redirige directamente a ella (búsquedas con un único resultado).
+- Al eliminar un libro se borran también sus resultados de scraping (precios_web).
+- La auditoría registra también las consultas: listados, búsquedas, cotizaciones, lista bimonetaria, exportación de precios a CSV e historial de auditoría.
+- La consola muestra la ruta del archivo de alertas y del reporte; la fecha de extracción se guarda sin microsegundos en el CSV.
+- Las fechas de auditoría y de extracción se guardan en UTC y se muestran en hora de Argentina (historial, CSV, Excel y nombres de archivo), así coinciden se ejecute en Colab o en una PC.
+- En Colab, los enlaces para descargar las alertas y los reportes se muestran al salir del programa (opción 0): files.download o un enlace mostrado mientras el menú espera un input dejaban la consola trabada.
+- Type hints en el decorador auditar, docstrings faltantes y correcciones de estilo PEP8.
+
 [Ejercicio 07]
 - Nuevas opciones del menú principal: 12. Ejecutar Scraping de Precios (pide la diferencia en % antes de cada ejecución y genera las alertas), 13. Generar Reporte Excel y 14. Ver Historial de Auditoría.
 - En Colab, las alertas y el reporte se descargan en el navegador; fuera de Colab se informa la ruta del archivo.

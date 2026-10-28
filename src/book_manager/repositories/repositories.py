@@ -1038,6 +1038,7 @@ class RepositorioPrecioWeb:
         self._conexion = conexion
 
     def _a_entidad(self, modelo: PrecioWebModel) -> PrecioWeb:
+        """Convierte un modelo de la base en una entidad PrecioWeb."""
         return PrecioWeb(
             modelo.libro_id,
             modelo.posicion,
@@ -1118,6 +1119,25 @@ class RepositorioPrecioWeb:
             ).all()
             return [self._a_entidad(modelo) for modelo in modelos]
 
+    def eliminar_por_libro(self, libro_id: int) -> int:
+        """Elimina los precios web obtenidos para un libro.
+
+        Args:
+            libro_id (int): Id del libro.
+
+        Returns:
+            int: Cantidad de registros eliminados.
+        """
+        with self._conexion.transaccion() as sesion:
+            modelos = sesion.scalars(
+                select(PrecioWebModel).where(
+                    PrecioWebModel.libro_id == libro_id
+                )
+            ).all()
+            for modelo in modelos:
+                sesion.delete(modelo)
+            return len(modelos)
+
 
 class RepositorioAuditoria:
     """Repositorio de base de datos para los registros de auditoría."""
@@ -1131,6 +1151,7 @@ class RepositorioAuditoria:
         self._conexion = conexion
 
     def _a_entidad(self, modelo: AuditoriaModel) -> Auditoria:
+        """Convierte un modelo de la base en una entidad Auditoria."""
         return Auditoria(
             modelo.accion,
             modelo.fecha,
@@ -1164,7 +1185,7 @@ class RepositorioAuditoria:
             id (int): El ID de la auditoría.
 
         Returns:
-            Optional[Auditoria]: La auditoría si existe, None en caso contrario.
+            Optional[Auditoria]: La auditoría si existe, None si no.
         """
         with self._conexion.transaccion() as sesion:
             modelo = sesion.get(AuditoriaModel, id)
@@ -1173,7 +1194,7 @@ class RepositorioAuditoria:
             return self._a_entidad(modelo)
 
     def leer_todos(self) -> List[Auditoria]:
-        """Lee todos los registros de auditoría ordenados por fecha y id descendentes.
+        """Lee los registros de auditoría, del más reciente al más viejo.
 
         Returns:
             List[Auditoria]: Lista de registros de auditoría ordenados de más
@@ -1187,4 +1208,3 @@ class RepositorioAuditoria:
                 )
             ).all()
             return [self._a_entidad(modelo) for modelo in modelos]
-

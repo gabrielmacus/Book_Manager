@@ -1,13 +1,13 @@
 import csv
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 from difflib import SequenceMatcher
 import functools
 import os
 from pathlib import Path
 import subprocess
 import sys
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 import unicodedata
 
 from dotenv import load_dotenv
@@ -36,6 +36,22 @@ from book_manager.repositories.repositories import (
 
 REPORTES_DIR = Path(__file__).resolve().parent.parent / "reportes"
 SCRAPER_DIR = Path(__file__).resolve().parent.parent / "scraper"
+# Argentina no usa horario de verano: siempre es UTC-3.
+HORA_ARGENTINA = timezone(timedelta(hours=-3))
+
+
+def ahora_utc() -> datetime:
+    """Retorna la fecha y hora actual en UTC, como se guarda en la base."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def a_hora_local(fecha: datetime) -> datetime:
+    """Convierte una fecha guardada en UTC a la hora de Argentina."""
+    return (
+        fecha.replace(tzinfo=timezone.utc)
+        .astimezone(HORA_ARGENTINA)
+        .replace(tzinfo=None, microsecond=0)
+    )
 
 
 def _normalizar_titulo(texto: str) -> str:
@@ -74,21 +90,26 @@ _servicio_auditoria: Optional["ServicioAuditoria"] = None
 def configurar_auditoria(
     servicio: Optional["ServicioAuditoria"],
 ) -> None:
-    """Configura la instancia de ServicioAuditoria para el decorador @auditar."""
+    """Configura el ServicioAuditoria que usa el decorador @auditar."""
     global _servicio_auditoria
     _servicio_auditoria = servicio
 
 
-def auditar(accion: str):
-    """Decorador con parámetro para registrar auditorías de operaciones del servicio.
+def auditar(
+    accion: str,
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+    """Decorador con parámetro que registra en la auditoría cada operación.
 
     Args:
         accion (str): Nombre de la acción a registrar en la auditoría.
+
+    Returns:
+        Callable: El decorador que envuelve el método auditado.
     """
 
-    def decorador(funcion):
+    def decorador(funcion: Callable[..., Any]) -> Callable[..., Any]:
         @functools.wraps(funcion)
-        def envoltura(*args, **kwargs):
+        def envoltura(*args: Any, **kwargs: Any) -> Any:
             args_sin_self = args[1:] if len(args) > 0 else ()
             argumentos = f"args={args_sin_self} kwargs={kwargs}"
             try:
@@ -119,7 +140,7 @@ class ServicioAuditoria:
         """Inicializa el servicio con el repositorio de auditoría.
 
         Args:
-            repositorio (RepositorioAuditoria): Repositorio para acceder a la base de datos.
+            repositorio (RepositorioAuditoria): Repositorio de auditoría.
         """
         self._repo = repositorio
 
@@ -133,7 +154,7 @@ class ServicioAuditoria:
         Returns:
             Auditoria: La auditoría creada.
         """
-        auditoria = Auditoria(accion, datetime.now(), detalles)
+        auditoria = Auditoria(accion, ahora_utc(), detalles)
         return self._repo.crear(auditoria)
 
     def obtener_historial(self, limite: int = 50) -> List[Auditoria]:
@@ -143,7 +164,8 @@ class ServicioAuditoria:
             limite (int): Límite de registros a devolver.
 
         Returns:
-            List[Auditoria]: Historial de auditorías ordenadas de más reciente a más vieja.
+            List[Auditoria]: Historial de auditorías, de la más reciente a
+                la más vieja.
 
         Raises:
             ValueError: Si el límite es menor a 1.
@@ -156,7 +178,8 @@ class ServicioAuditoria:
 class ServicioPrecioWeb:
     """Compara precios del catálogo con los resultados de Cúspide."""
 
-    SIMILITUD_MINIMA = 0.6
+    # Sin ISBN coincidente, solo se acepta un título casi idéntico.
+    SIMILITUD_MINIMA = 0.9
 
     def __init__(
         self,
@@ -167,6 +190,7 @@ class ServicioPrecioWeb:
         repo_cotizacion: IRepositorioCotizacionDolar,
         repo_tipo: IRepositorio[TipoCotizacion],
     ) -> None:
+        """Inicializa el servicio con los repositorios que necesita."""
         self._repo = repositorio
         self._repo_libro = repo_libro
         self._repo_precio = repo_precio
@@ -326,7 +350,7 @@ class ServicioPrecioWeb:
         ]
         REPORTES_DIR.mkdir(parents=True, exist_ok=True)
         ruta = REPORTES_DIR / (
-            f"alertas_{datetime.now():%Y%m%d_%H%M%S}.csv"
+            f"alertas_{datetime.now(HORA_ARGENTINA):%Y%m%d_%H%M%S}.csv"
         )
         encabezados = [
             "libro",
@@ -353,7 +377,9 @@ class ServicioPrecioWeb:
                             alerta.diferencia_porcentual
                         ),
                         "url": alerta.url,
-                        "fecha_extraccion": alerta.fecha_extraccion,
+                        "fecha_extraccion": a_hora_local(
+                            alerta.fecha_extraccion
+                        ),
                     }
                 )
         return ruta
@@ -369,14 +395,25 @@ class ServicioPrecioWeb:
             Path: Ruta del archivo CSV generado.
 
         Raises:
-            ValueError: Si el umbral es negativo.
-            RuntimeError: Si falla la ejecución del scraper.
+            ValueError: Si el umbral es negativo o el catálogo está vacío.
+            RuntimeError: Si el scraper falla o no obtiene resultados.
         """
         if umbral_porcentual < 0:
             raise ValueError(
                 "La diferencia debe ser mayor o igual a 0."
             )
+        if not self._repo_libro.leer_todos():
+            raise ValueError(
+                "No hay libros en el catálogo: cargue los datos antes."
+            )
+        inicio = ahora_utc()
         self.ejecutar_scraper()
+        extraccion = self._repo.leer_ultima_extraccion()
+        if not extraccion or extraccion[0].fecha_extraccion < inicio:
+            raise RuntimeError(
+                "El scraping no obtuvo resultados de Cúspide. "
+                "Verifique la conexión e intente nuevamente."
+            )
         return self.generar_alertas(umbral_porcentual)
 
     @auditar("Generar reporte Excel")
@@ -402,14 +439,13 @@ class ServicioPrecioWeb:
             "Precio web": [c.precio_web for c in comparaciones],
             "Diferencia": [c.diferencia for c in comparaciones],
             "Fecha de extracción": [
-                c.fecha_extraccion.replace(microsecond=0)
-                for c in comparaciones
+                a_hora_local(c.fecha_extraccion) for c in comparaciones
             ],
         }
         df = DataFrame(datos)
         REPORTES_DIR.mkdir(parents=True, exist_ok=True)
         ruta = REPORTES_DIR / (
-            f"reporte_{datetime.now():%Y%m%d_%H%M%S}.xlsx"
+            f"reporte_{datetime.now(HORA_ARGENTINA):%Y%m%d_%H%M%S}.xlsx"
         )
         df.to_excel(ruta, index=False, sheet_name="Comparación")
         return ruta
@@ -816,12 +852,14 @@ class ServicioLibro:
         repo_genero: IRepositorio[Genero],
         repo_precio: IRepositorio[Precio],
         repo_stock: IRepositorioStock,
+        repo_precio_web: RepositorioPrecioWeb,
     ) -> None:
         self._repo = repositorio
         self._repo_editorial = repo_editorial
         self._repo_genero = repo_genero
         self._repo_precio = repo_precio
         self._repo_stock = repo_stock
+        self._repo_precio_web = repo_precio_web
 
     def siguiente_id(self) -> int:
         """Retorna el próximo id disponible (el mayor existente más 1)."""
@@ -919,7 +957,7 @@ class ServicioLibro:
 
     @auditar("Eliminar libro")
     def eliminar(self, id: int) -> bool:
-        """Elimina un libro por su id.
+        """Elimina un libro por su id, junto con sus resultados de scraping.
 
         Args:
             id (int): Identificador del libro a eliminar.
@@ -939,6 +977,7 @@ class ServicioLibro:
             raise ValueError(
                 "No se puede eliminar: tiene stock registrado."
             )
+        self._repo_precio_web.eliminar_por_libro(id)
         return self._repo.eliminar(id)
 
 
