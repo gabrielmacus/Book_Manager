@@ -1003,6 +1003,51 @@ class ConsoleUI:
         print(f"Precios exportados en {ruta}")
         self._pause()
 
+    def _ofrecer_descarga(self, ruta: Path) -> None:
+        """Ofrece la descarga del archivo en Colab o muestra la ruta local."""
+        try:
+            from google.colab import files
+
+            files.download(str(ruta))
+        except ImportError:
+            print(f"Archivo disponible en: {ruta}")
+
+    def _ejecutar_scraping(self) -> None:
+        self._clear_screen()
+        print("--- Ejecutar Scraping de Precios ---")
+        umbral = self._get_input(
+            "Diferencia de precio para generar alertas (%): ", float
+        )
+        print("Buscando los libros en Cúspide (puede tardar 1 o 2 minutos)...")
+        try:
+            ruta = self.servicios.precios_web.ejecutar_scraping(umbral)
+            with ruta.open(encoding="utf-8") as f:
+                alertas = max(0, len(f.readlines()) - 1)
+            print(f"Alertas generadas: {alertas}")
+            self._ofrecer_descarga(ruta)
+        except (ValueError, RuntimeError) as e:
+            print(f"Error: {e}")
+        self._pause()
+
+    def _generar_reporte(self) -> None:
+        self._clear_screen()
+        print("--- Generar Reporte Excel ---")
+        try:
+            ruta = self.servicios.precios_web.generar_reporte_excel()
+            self._ofrecer_descarga(ruta)
+        except ValueError as e:
+            print(f"Error: {e}")
+        self._pause()
+
+    def _ver_auditoria(self) -> None:
+        self._display_list(
+            "Historial de Auditoría (últimos 50)",
+            self.servicios.auditoria.obtener_historial(50),
+            lambda a: (
+                f"{a.fecha:%Y-%m-%d %H:%M:%S} | {a.accion} | {a.detalles}"
+            ),
+        )
+
     def run(self) -> None:
         while True:
             self._clear_screen()
@@ -1018,6 +1063,9 @@ class ConsoleUI:
             print("9. Obtener Cotizaciones por API")
             print("10. Lista de Precios Bimonetaria")
             print("11. Exportar Precios a CSV")
+            print("12. Ejecutar Scraping de Precios")
+            print("13. Generar Reporte Excel")
+            print("14. Ver Historial de Auditoría")
             print("0. Salir")
             opcion = self._get_input("Seleccione una opción: ", int)
 
@@ -1043,6 +1091,12 @@ class ConsoleUI:
                 self._lista_bimonetaria()
             elif opcion == 11:
                 self._exportar_precios_csv()
+            elif opcion == 12:
+                self._ejecutar_scraping()
+            elif opcion == 13:
+                self._generar_reporte()
+            elif opcion == 14:
+                self._ver_auditoria()
             elif opcion == 0:
                 print("Saliendo del sistema...")
                 break

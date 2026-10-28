@@ -1,5 +1,9 @@
 ## Sprint 3
 
+[Ejercicio 07]
+- Nuevas opciones del menú principal: 12. Ejecutar Scraping de Precios (pide la diferencia en % antes de cada ejecución y genera las alertas), 13. Generar Reporte Excel y 14. Ver Historial de Auditoría.
+- En Colab, las alertas y el reporte se descargan en el navegador; fuera de Colab se informa la ruta del archivo.
+
 [Ejercicio 06]
 - Auditoría: entidad Auditoria, tabla auditoria (AuditoriaModel), RepositorioAuditoria y ServicioAuditoria. Registra acción, fecha y detalles.
 - Decorador auditar(accion): registra cada alta, modificación y baja de los servicios, la obtención de cotizaciones por API, el scraping y el reporte Excel, indicando si la operación terminó bien o con error.
