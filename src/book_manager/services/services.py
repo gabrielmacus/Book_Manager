@@ -1,7 +1,13 @@
+import csv
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
+from difflib import SequenceMatcher
 import os
-from typing import List, Optional
+from pathlib import Path
+import subprocess
+import sys
+from typing import Dict, List, Optional
+import unicodedata
 
 from dotenv import load_dotenv
 import requests
@@ -13,6 +19,7 @@ from book_manager.entities.entities import (
     Libro,
     Moneda,
     Precio,
+    PrecioWeb,
     Stock,
     TipoCotizacion,
 )
@@ -20,7 +27,267 @@ from book_manager.repositories.repositories import (
     IRepositorio,
     IRepositorioCotizacionDolar,
     IRepositorioStock,
+    RepositorioPrecioWeb,
 )
+
+REPORTES_DIR = Path(__file__).resolve().parent.parent / "reportes"
+SCRAPER_DIR = Path(__file__).resolve().parent.parent / "scraper"
+
+
+def _normalizar_titulo(texto: str) -> str:
+    """Normaliza un título para comparar palabras sin acentos ni signos."""
+    texto_ascii = (
+        unicodedata.normalize("NFKD", texto)
+        .encode("ascii", "ignore")
+        .decode()
+    )
+    return " ".join(
+        "".join(
+            caracter if caracter.isalnum() else " "
+            for caracter in texto_ascii.upper()
+        ).split()
+    )
+
+
+@dataclass
+class ComparacionPrecio:
+    """Diferencia entre el precio interno y el precio obtenido de la web."""
+
+    libro_id: int
+    libro: str
+    isbn: str
+    precio_interno: float
+    precio_web: float
+    diferencia: float
+    diferencia_porcentual: float
+    url: str
+    fecha_extraccion: datetime
+
+
+class ServicioPrecioWeb:
+    """Compara precios del catálogo con los resultados de Cúspide."""
+
+    SIMILITUD_MINIMA = 0.6
+
+    def __init__(
+        self,
+        repositorio: RepositorioPrecioWeb,
+        repo_libro: IRepositorio[Libro],
+        repo_precio: IRepositorio[Precio],
+        repo_moneda: IRepositorio[Moneda],
+        repo_cotizacion: IRepositorioCotizacionDolar,
+        repo_tipo: IRepositorio[TipoCotizacion],
+    ) -> None:
+        self._repo = repositorio
+        self._repo_libro = repo_libro
+        self._repo_precio = repo_precio
+        self._repo_moneda = repo_moneda
+        self._repo_cotizacion = repo_cotizacion
+        self._repo_tipo = repo_tipo
+
+    def ejecutar_scraper(self) -> None:
+        """Ejecuta el spider en un proceso separado.
+
+        Raises:
+            RuntimeError: Si Scrapy finaliza con un error.
+        """
+        entorno = os.environ.copy()
+        entorno["PYTHONPATH"] = str(SCRAPER_DIR.parent.parent)
+        resultado = subprocess.run(
+            [sys.executable, "-m", "scrapy", "crawl", "cuspide"],
+            cwd=SCRAPER_DIR,
+            env=entorno,
+            capture_output=True,
+            text=True,
+        )
+        if resultado.returncode != 0:
+            ultimas_lineas = "\n".join(resultado.stderr.splitlines()[-10:])
+            raise RuntimeError(
+                "Falló la ejecución del scraper:\n" + ultimas_lineas
+            )
+
+    def _dolar_oficial(self) -> Optional[float]:
+        """Obtiene la cotización más reciente del dólar oficial."""
+        tipo = next(
+            (
+                tipo
+                for tipo in self._repo_tipo.leer_todos()
+                if tipo.nombre.lower() == "oficial"
+            ),
+            None,
+        )
+        if tipo is None:
+            return None
+        historico = self._repo_cotizacion.leer_historico_por_tipo(tipo.id)
+        return historico[-1].valor if historico else None
+
+    def _precio_en_pesos(
+        self, valores: Dict[str, float], dolar: Optional[float]
+    ) -> Optional[float]:
+        """Convierte los precios de una moneda a pesos cuando es posible."""
+        if "ARS" in valores:
+            return valores["ARS"]
+        if "USD" in valores and dolar is not None:
+            return round(valores["USD"] * dolar, 2)
+        return None
+
+    def _elegir_resultado(
+        self, libro: Libro, candidatos: List[PrecioWeb]
+    ) -> Optional[PrecioWeb]:
+        """Elige por ISBN o por similitud de título el resultado web."""
+        coincidencia_isbn = next(
+            (
+                candidato
+                for candidato in candidatos
+                if candidato.isbn == libro.isbn
+            ),
+            None,
+        )
+        if coincidencia_isbn is not None:
+            return coincidencia_isbn
+        if not candidatos:
+            return None
+
+        titulo = _normalizar_titulo(libro.titulo)
+        puntuados = [
+            (
+                SequenceMatcher(
+                    None, titulo, _normalizar_titulo(candidato.titulo)
+                ).ratio(),
+                candidato,
+            )
+            for candidato in candidatos
+        ]
+        similitud, mejor = max(
+            puntuados, key=lambda par: (par[0], -par[1].posicion)
+        )
+        return mejor if similitud >= self.SIMILITUD_MINIMA else None
+
+    def comparar_ultima_extraccion(self) -> List[ComparacionPrecio]:
+        """Compara los precios internos con la última extracción web.
+
+        Returns:
+            List[ComparacionPrecio]: Comparaciones válidas en pesos.
+        """
+        precios_web = self._repo.leer_ultima_extraccion()
+        if not precios_web:
+            return []
+
+        candidatos_por_libro: Dict[int, List[PrecioWeb]] = {}
+        for precio_web in precios_web:
+            candidatos_por_libro.setdefault(
+                precio_web.libro_id, []
+            ).append(precio_web)
+
+        codigos_moneda = {
+            moneda.id: moneda.codigo
+            for moneda in self._repo_moneda.leer_todos()
+        }
+        valores_por_libro: Dict[int, Dict[str, float]] = {}
+        for precio in self._repo_precio.leer_todos():
+            codigo = codigos_moneda.get(precio.moneda_id)
+            if codigo is not None:
+                valores_por_libro.setdefault(precio.libro_id, {})[
+                    codigo
+                ] = precio.valor
+
+        dolar = self._dolar_oficial()
+        comparaciones = []
+        for libro in self._repo_libro.leer_todos():
+            candidato = self._elegir_resultado(
+                libro, candidatos_por_libro.get(libro.id, [])
+            )
+            precio_interno = self._precio_en_pesos(
+                valores_por_libro.get(libro.id, {}), dolar
+            )
+            if candidato is None or precio_interno is None:
+                continue
+
+            diferencia = candidato.precio - precio_interno
+            comparaciones.append(
+                ComparacionPrecio(
+                    libro_id=libro.id,
+                    libro=libro.titulo,
+                    isbn=libro.isbn,
+                    precio_interno=precio_interno,
+                    precio_web=candidato.precio,
+                    diferencia=round(diferencia, 2),
+                    diferencia_porcentual=round(
+                        diferencia / precio_interno * 100, 2
+                    ),
+                    url=candidato.url,
+                    fecha_extraccion=candidato.fecha_extraccion,
+                )
+            )
+        return comparaciones
+
+    def generar_alertas(self, umbral_porcentual: float) -> Path:
+        """Genera un CSV con las diferencias que superan el umbral.
+
+        Args:
+            umbral_porcentual (float): Diferencia porcentual mínima.
+
+        Returns:
+            Path: Ruta del archivo CSV generado.
+        """
+        alertas = [
+            comparacion
+            for comparacion in self.comparar_ultima_extraccion()
+            if abs(comparacion.diferencia_porcentual) > umbral_porcentual
+        ]
+        REPORTES_DIR.mkdir(parents=True, exist_ok=True)
+        ruta = REPORTES_DIR / (
+            f"alertas_{datetime.now():%Y%m%d_%H%M%S}.csv"
+        )
+        encabezados = [
+            "libro",
+            "isbn",
+            "precio_interno",
+            "precio_web",
+            "diferencia",
+            "diferencia_porcentual",
+            "url",
+            "fecha_extraccion",
+        ]
+        with ruta.open("w", encoding="utf-8", newline="") as archivo:
+            escritor = csv.DictWriter(archivo, fieldnames=encabezados)
+            escritor.writeheader()
+            for alerta in alertas:
+                escritor.writerow(
+                    {
+                        "libro": alerta.libro,
+                        "isbn": alerta.isbn,
+                        "precio_interno": alerta.precio_interno,
+                        "precio_web": alerta.precio_web,
+                        "diferencia": alerta.diferencia,
+                        "diferencia_porcentual": (
+                            alerta.diferencia_porcentual
+                        ),
+                        "url": alerta.url,
+                        "fecha_extraccion": alerta.fecha_extraccion,
+                    }
+                )
+        return ruta
+
+    def ejecutar_scraping(self, umbral_porcentual: float) -> Path:
+        """Ejecuta el scraper y genera el CSV de alertas.
+
+        Args:
+            umbral_porcentual (float): Diferencia porcentual mínima.
+
+        Returns:
+            Path: Ruta del archivo CSV generado.
+
+        Raises:
+            ValueError: Si el umbral es negativo.
+            RuntimeError: Si falla la ejecución del scraper.
+        """
+        if umbral_porcentual < 0:
+            raise ValueError(
+                "La diferencia debe ser mayor o igual a 0."
+            )
+        self.ejecutar_scraper()
+        return self.generar_alertas(umbral_porcentual)
 
 
 class ServicioGenero:
@@ -912,3 +1179,4 @@ class Servicios:
     precios: ServicioPrecio
     stock: ServicioStock
     cotizaciones: ServicioCotizacionDolar
+    precios_web: ServicioPrecioWeb

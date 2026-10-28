@@ -5,7 +5,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Generic, List, Optional, TypeVar
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 
 from book_manager.database.connection import ConexionDB
@@ -1095,3 +1095,23 @@ class RepositorioPrecioWeb:
                 )
             ).all()
             return [self._a_entidad(m) for m in modelos]
+
+    def leer_ultima_extraccion(self) -> List[PrecioWeb]:
+        """Lee los precios web de la extracción más reciente.
+
+        Returns:
+            List[PrecioWeb]: Precios de la última extracción, ordenados por
+                libro y posición. Si no hay datos, devuelve una lista vacía.
+        """
+        with self._conexion.transaccion() as sesion:
+            fecha = sesion.scalar(
+                select(func.max(PrecioWebModel.fecha_extraccion))
+            )
+            if fecha is None:
+                return []
+            modelos = sesion.scalars(
+                select(PrecioWebModel)
+                .where(PrecioWebModel.fecha_extraccion == fecha)
+                .order_by(PrecioWebModel.libro_id, PrecioWebModel.posicion)
+            ).all()
+            return [self._a_entidad(modelo) for modelo in modelos]

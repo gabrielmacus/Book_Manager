@@ -9,6 +9,7 @@ from book_manager.repositories.repositories import (
     RepositorioLibro,
     RepositorioMoneda,
     RepositorioPrecio,
+    RepositorioPrecioWeb,
     RepositorioStock,
     RepositorioTipoCotizacion,
 )
@@ -19,6 +20,7 @@ from book_manager.services.services import (
     ServicioLibro,
     ServicioMoneda,
     ServicioPrecio,
+    ServicioPrecioWeb,
     ServicioStock,
     ServicioTipoCotizacion,
     Servicios,
@@ -59,6 +61,14 @@ def main(import_default_data: bool = False) -> None:
         precios=ServicioPrecio(repo_precio, repo_libro, repo_moneda),
         stock=ServicioStock(repo_stock, repo_libro),
         cotizaciones=ServicioCotizacionDolar(repo_cotizacion, repo_tipo),
+        precios_web=ServicioPrecioWeb(
+            RepositorioPrecioWeb(conexion),
+            repo_libro,
+            repo_precio,
+            repo_moneda,
+            repo_cotizacion,
+            repo_tipo,
+        ),
     )
 
     ConsoleUI(servicios).run()

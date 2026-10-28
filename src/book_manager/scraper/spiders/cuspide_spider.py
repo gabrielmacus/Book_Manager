@@ -40,7 +40,13 @@ class CuspideSpider(Spider):
 
     async def start(self) -> AsyncIterator[Request]:
         """Genera una búsqueda en Cúspide por cada libro del catálogo."""
-        for libro in self._libros():
+        libros = self._libros()
+        if not libros:
+            self.logger.warning(
+                "No hay libros en el catálogo: cargue los datos antes."
+            )
+            return
+        for libro in libros:
             parametros = urlencode({"s": libro.titulo, "post_type": "product"})
             yield Request(
                 self.URL_BUSQUEDA + parametros,

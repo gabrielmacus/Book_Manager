@@ -1,5 +1,10 @@
 ## Sprint 3
 
+[Ejercicio 04]
+- ServicioPrecioWeb compara precios internos en pesos con la última extracción web, convirtiendo precios en USD con el dólar oficial.
+- Elige el resultado web por ISBN o por similitud de título y genera reportes/alertas_<fecha_hora>.csv según el umbral indicado.
+- Ejecuta Scrapy en un proceso aparte y avisa cuando el catálogo está vacío.
+
 [Ejercicio 03]
 - Scraper CuspideSpider con Scrapy: busca en Cúspide cada título del catálogo y recorre los primeros 10 resultados de cada búsqueda.
 - De cada ficha obtiene precio en pesos y en dólares, URL de la imagen, formas de pago, descripción (sinopsis) y especificaciones, además del ISBN y la fecha de extracción.
